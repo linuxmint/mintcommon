@@ -1,0 +1,18 @@
+mint-common (1.0.2) helena; urgency=low
+
+  * Added a lot of stuff
+
+ -- Clement Lefebvre <root@linuxmint.com>  Wed,  7 Oct 2007 16:41:00 +0000
+
+mint-common (1.0.1) helena; urgency=low
+
+  * Added Linux Mint logo
+
+ -- Clement Lefebvre <root@linuxmint.com>  Wed,  7 Oct 2007 16:24:00 +0000
+
+mint-common (1.0.0) helena; urgency=low
+
+  * Initial release
+
+ -- Clement Lefebvre <root@linuxmint.com>  Wed,  7 Oct 2007 14:18:00 +0000
+
