@@ -4,7 +4,7 @@ import os
 import sys
 import gettext
 
-gettext.install("messages", "/usr/lib/linuxmint/common/locale")
+gettext.install("mint-common", "/usr/share/linuxmint/locale")
 
 launcher = "gksu  --message \"<b>" + _("Please enter your password") + "</b>\""
 if os.path.exists("/etc/linuxmint/info"):

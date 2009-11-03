@@ -1,8 +1,8 @@
 Package: mint-common
-Version: 1.0.2
+Version: 1.0.3
 Architecture: all
 Maintainer: Clement Lefebvre <root@linuxmint.com>
-Installed-Size: 852
+Installed-Size: 856
 Depends: python (>= 2.4), python (<< 3), python-gtk2, python-glade2
 Section: admin
 Priority: optional

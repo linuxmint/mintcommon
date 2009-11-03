@@ -1,3 +1,9 @@
+mint-common (1.0.4) helena; urgency=low
+
+  * Changed translation framework
+
+ -- Clement Lefebvre <root@linuxmint.com>  Tue,  3 Nov 2009 11:38:00 +0000
+
 mint-common (1.0.3) helena; urgency=low
 
   * Added launch_browser_as.py
