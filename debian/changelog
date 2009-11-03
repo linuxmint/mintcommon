@@ -1,3 +1,9 @@
+mint-common (1.0.5) helena; urgency=low
+
+  * Added dependency on mint-translations
+
+ -- Clement Lefebvre <root@linuxmint.com>  Tue,  3 Nov 2009 12:23:00 +0000
+
 mint-common (1.0.4) helena; urgency=low
 
   * Changed translation framework

@@ -7,6 +7,6 @@ Standards-Version: 3.7.2
 
 Package: mint-common
 Architecture: all
-Depends: python (>= 2.4), python (<< 3), python-gtk2, python-glade2
+Depends: python (>= 2.4), python (<< 3), python-gtk2, python-glade2, mint-translations
 Description: Common scripts and resources for Linux Mint
  A collection of scripts and resources used by other Linux Mint packages
