@@ -7,7 +7,7 @@ import gettext
 gettext.install("mint-common", "/usr/share/linuxmint/locale")
 
 if len( sys.argv ) == 2:
-    message = _("Please enter your password to launch %s")%sys.argv[1]
+    message = sys.argv[1]
 else:
     message = _("Please enter your password")
 
