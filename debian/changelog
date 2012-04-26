@@ -1,3 +1,9 @@
+mint-common (1.0.6) lisa; urgency=low
+
+  * Use gksu in KDE if it's installed
+
+ -- Clement Lefebvre <root@linuxmint.com>  Thu, 15 Dec 2011 11:54:24 +0000
+
 mint-common (1.0.5) helena; urgency=low
 
   * Added dependency on mint-translations
