@@ -1,3 +1,9 @@
+mint-common (1.0.7) maya; urgency=low
+
+  * Added env_check
+
+ -- Clement Lefebvre <root@linuxmint.com>  Mon, 25 Jun 2012 14:30:28 +0100
+
 mint-common (1.0.6) lisa; urgency=low
 
   * Use gksu in KDE if it's installed
