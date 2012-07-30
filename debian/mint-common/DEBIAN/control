@@ -1,9 +1,9 @@
 Package: mint-common
-Version: 1.0.4
+Version: 1.0.7
 Architecture: all
 Maintainer: Clement Lefebvre <root@linuxmint.com>
-Installed-Size: 228
-Depends: python (>= 2.4), python (<< 3), python-gtk2, python-glade2
+Installed-Size: 204
+Depends: python (>= 2.4), python (<< 3), python-gtk2, python-glade2, mint-translations
 Section: admin
 Priority: optional
 Description: Common scripts and resources for Linux Mint

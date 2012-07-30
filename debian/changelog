@@ -1,3 +1,9 @@
+mint-common (1.0.8) maya; urgency=low
+
+  * Added entrydialog
+
+ -- Clement Lefebvre <root@linuxmint.com>  Mon, 30 Jul 2012 14:28:05 +0100
+
 mint-common (1.0.7) maya; urgency=low
 
   * Added env_check
