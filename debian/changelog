@@ -1,3 +1,9 @@
+mint-common (1.0.9) nadia; urgency=low
+
+  * Added a collection of faces icons
+
+ -- Clement Lefebvre <root@linuxmint.com>  Mon, 07 Jan 2013 16:04:21 +0000
+
 mint-common (1.0.8) maya; urgency=low
 
   * Added entrydialog
