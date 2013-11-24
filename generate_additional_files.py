@@ -12,22 +12,24 @@ def generate(filename, prefix, name, comment, suffix):
     desktopFile.writelines(prefix)
 
     desktopFile.writelines("Name=%s\n" % name)
-    for directory in os.listdir(PATH):
+    for directory in sorted(os.listdir(PATH)):
         if os.path.isdir(os.path.join(PATH, directory)):
             try:
                 language = gettext.translation(DOMAIN, PATH, languages=[directory])
-                language.install()          
-                desktopFile.writelines("Name[%s]=%s\n" % (directory, _(name)))
+                language.install()
+                if (_(name) != name):
+                    desktopFile.writelines("Name[%s]=%s\n" % (directory, _(name)))
             except:
                 pass
 
     desktopFile.writelines("Comment=%s\n" % comment)
-    for directory in os.listdir(PATH):
+    for directory in sorted(os.listdir(PATH)):
         if os.path.isdir(os.path.join(PATH, directory)):
             try:
                 language = gettext.translation(DOMAIN, PATH, languages=[directory])
-                language.install()                      
-                desktopFile.writelines("Comment[%s]=%s\n" % (directory, _(comment)))
+                language.install()
+                if (_(comment) != comment):
+                    desktopFile.writelines("Comment[%s]=%s\n" % (directory, _(comment)))
             except:
                 pass
 
