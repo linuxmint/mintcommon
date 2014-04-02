@@ -42,7 +42,7 @@ Stock-Id=gtk-dnd-multiple
 Selection=NotNone
 Extensions=nodirs;
 Dependencies=thunderbird;
-Separator=, 
+Separator=,
 """
 
 gettext.install(DOMAIN, PATH)
