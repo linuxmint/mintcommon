@@ -1,3 +1,11 @@
+mint-common (1.1.2) qiana; urgency=medium
+
+  * Correct the syntax for Thunderbird file attachments
+  * Added mint-remove-application.py and cinnamon-remove-application
+  * Added dep on synaptic
+
+ -- Clement Lefebvre <root@linuxmint.com>  Mon, 14 Apr 2014 13:07:20 +0100
+
 mint-common (1.1.1) petra; urgency=low
 
   * Improved generate_additional_files.py, refreshed translations for email nemo action
