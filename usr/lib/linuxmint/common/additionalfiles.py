@@ -2,20 +2,17 @@
 
 import os, gettext
 
-DOMAIN = "mint-common"
-PATH = "/usr/share/linuxmint/locale"
-
-def generate(filename, prefix, name, comment, suffix):
-    gettext.install(DOMAIN, PATH)
+def generate(domain, path, filename, prefix, name, comment, suffix):
+    gettext.install(domain, path)
     desktopFile = open(filename, "w")
 
     desktopFile.writelines(prefix)
 
     desktopFile.writelines("Name=%s\n" % name)
-    for directory in sorted(os.listdir(PATH)):
-        if os.path.isdir(os.path.join(PATH, directory)):
+    for directory in sorted(os.listdir(path)):
+        if os.path.isdir(os.path.join(path, directory)):
             try:
-                language = gettext.translation(DOMAIN, PATH, languages=[directory])
+                language = gettext.translation(domain, path, languages=[directory])
                 language.install()
                 if (_(name) != name):
                     desktopFile.writelines("Name[%s]=%s\n" % (directory, _(name)))
@@ -23,10 +20,10 @@ def generate(filename, prefix, name, comment, suffix):
                 pass
 
     desktopFile.writelines("Comment=%s\n" % comment)
-    for directory in sorted(os.listdir(PATH)):
-        if os.path.isdir(os.path.join(PATH, directory)):
+    for directory in sorted(os.listdir(path)):
+        if os.path.isdir(os.path.join(path, directory)):
             try:
-                language = gettext.translation(DOMAIN, PATH, languages=[directory])
+                language = gettext.translation(domain, path, languages=[directory])
                 language.install()
                 if (_(comment) != comment):
                     desktopFile.writelines("Comment[%s]=%s\n" % (directory, _(comment)))
@@ -34,4 +31,6 @@ def generate(filename, prefix, name, comment, suffix):
                 pass
 
     desktopFile.writelines(suffix)
+    os.environ['LANG'] = "en_US.UTF-8"
+    gettext.install(domain, path)
 
