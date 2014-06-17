@@ -1,7 +1,7 @@
 Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: mint-common
 Upstream-Contact: Clement Lefebvre <root@linuxmint.com>
-Source: https://github.com/tgoyne/aegisub/releases
+Source: https://github.com/linuxmint/mint-common
 
 Files: *
 Copyright: 2009-2014 Clement Lefebvre <root@linuxmint.com>
