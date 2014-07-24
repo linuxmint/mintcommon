@@ -1,5 +1,5 @@
-#!/bin/bash
+#!/bin/sh
 
-sudo rm -rf /usr/lib/linuxmint/common
+sudo rm -rf /usr/share/linuxmint/common
 sudo cp -R usr /
 
