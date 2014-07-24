@@ -1,7 +1,7 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 import os, gettext, sys
-sys.path.append('/usr/lib/linuxmint/common')
+sys.path.append('/usr/share/linuxmint/common')
 import additionalfiles
 
 DOMAIN = "mint-common"

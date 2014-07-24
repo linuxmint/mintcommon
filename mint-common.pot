@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2014-03-31 16:29+0100\n"
+"POT-Creation-Date: 2014-07-24 20:32+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,37 +17,37 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: usr/lib/linuxmint/common/mint-which-launcher.py:9
-#: usr/lib/linuxmint/common/mint-which-launcher.py:11
+#: usr/share/linuxmint/common/mint-which-launcher.py:9
+#: usr/share/linuxmint/common/mint-which-launcher.py:11
 msgid "Please enter your password"
 msgstr ""
 
-#: usr/lib/linuxmint/common/mint-remove-application.py:36
+#: usr/share/linuxmint/common/mint-remove-application.py:36
 msgid "Please wait, this can take some time"
 msgstr ""
 
-#: usr/lib/linuxmint/common/mint-remove-application.py:38
+#: usr/share/linuxmint/common/mint-remove-application.py:38
 msgid "Application removed successfully"
 msgstr ""
 
-#: usr/lib/linuxmint/common/mint-remove-application.py:57
+#: usr/share/linuxmint/common/mint-remove-application.py:57
 msgid ""
 "This menu item is not associated to any package. Do you want to remove it "
 "from the menu anyway?"
 msgstr ""
 
-#: usr/lib/linuxmint/common/mint-remove-application.py:67
+#: usr/share/linuxmint/common/mint-remove-application.py:67
 msgid "The following packages will be removed:"
 msgstr ""
 
-#: usr/lib/linuxmint/common/mint-remove-application.py:71
+#: usr/share/linuxmint/common/mint-remove-application.py:71
 msgid "Packages to be removed"
 msgstr ""
 
-#: generate_additional_files.py:49
+#: generate_additional_files.py:22
 msgid "Send by Email"
 msgstr ""
 
-#: generate_additional_files.py:49
+#: generate_additional_files.py:22
 msgid "Send as email attachment"
 msgstr ""

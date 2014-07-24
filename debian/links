@@ -1,0 +1,2 @@
+/usr/share/linuxmint/common                              /usr/lib/linuxmint/common
+/usr/share/linuxmint/common/mint-remove-application.py   /usr/bin/cinnamon-remove-application 
