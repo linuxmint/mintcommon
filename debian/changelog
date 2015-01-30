@@ -1,3 +1,9 @@
+mint-common (1.1.6) betsy; urgency=medium
+
+  * Updated user pictures in /usr/share/pixmaps/faces
+
+ -- Clement Lefebvre <root@linuxmint.com>  Fri, 30 Jan 2015 09:52:34 +0100
+
 mint-common (1.1.5) qiana; urgency=medium
 
   * Support GenericName in additionalfiles.py
