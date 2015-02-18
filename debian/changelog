@@ -1,3 +1,9 @@
+mint-common (1.1.8) betsy; urgency=medium
+
+  * Changed the icon for the thunderbird nemo action
+
+ -- Clement Lefebvre <root@linuxmint.com>  Wed, 18 Feb 2015 10:13:07 +0100
+
 mint-common (1.1.7) betsy; urgency=medium
 
   * Removed /usr/share/pixmaps/faces/user-generic.png (provided by mdm)
