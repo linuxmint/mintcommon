@@ -146,7 +146,7 @@ Comment[ur]=ای میل کی اٹیچمنٹ کے طور بھجیں
 Comment[vi]=Gửi dưới dạng đính kèm điện thư
 Comment[zh_CN]=作为电子邮件附件发送
 Exec=thunderbird -compose to=,"attachment='%F'"
-Stock-Id=gtk-dnd-multiple
+Icon-Name=mail-attachment
 Selection=NotNone
 Extensions=nodirs;
 Dependencies=thunderbird;
