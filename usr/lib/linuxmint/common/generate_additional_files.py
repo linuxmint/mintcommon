@@ -1,9 +1,9 @@
-#!/usr/bin/python
-
-import os, gettext
+import os
+import gettext
 
 DOMAIN = "mint-common"
 PATH = "/usr/share/linuxmint/locale"
+
 
 def generate(filename, prefix, name, comment, suffix):
     print "HERE"
@@ -38,4 +38,3 @@ def generate(filename, prefix, name, comment, suffix):
                 pass
 
     desktopFile.writelines(suffix)
-

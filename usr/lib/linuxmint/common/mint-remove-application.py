@@ -22,16 +22,17 @@ from subprocess import Popen
 # i18n
 gettext.install("mint-common", "/usr/share/linuxmint/locale")
 
+
 class RemoveExecuter(threading.Thread):
 
     def __init__(self, package):
-        threading.Thread.__init__(self)        
+        threading.Thread.__init__(self)
         self.package = package
 
-    def run(self):  
+    def run(self):
         removePackages = string.split(self.package)
-        cmd = ["sudo", "/usr/sbin/synaptic", "--hide-main-window",  \
-                "--non-interactive"]
+        cmd = ["sudo", "/usr/sbin/synaptic", "--hide-main-window",
+               "--non-interactive"]
         cmd.append("--progress-str")
         cmd.append("\"" + _("Please wait, this can take some time") + "\"")
         cmd.append("--finish-str")
@@ -44,27 +45,28 @@ class RemoveExecuter(threading.Thread):
             f.flush()
             comnd = Popen(' '.join(cmd), shell=True)
         returnCode = comnd.wait()
-        f.close()        
+        f.close()
         sys.exit(0)
+
 
 class mintRemoveWindow:
 
     def __init__(self, desktopFile):
-        self.desktopFile = desktopFile      
+        self.desktopFile = desktopFile
         (status, output) = commands.getstatusoutput("dpkg -S " + self.desktopFile)
         package = output[:output.find(":")]
-        if status != 0:            
-            warnDlg = Gtk.MessageDialog(None, 0, Gtk.MessageType.WARNING, Gtk.ButtonsType.YES_NO, _("This menu item is not associated to any package. Do you want to remove it from the menu anyway?"))            
+        if status != 0:
+            warnDlg = Gtk.MessageDialog(None, 0, Gtk.MessageType.WARNING, Gtk.ButtonsType.YES_NO, _("This menu item is not associated to any package. Do you want to remove it from the menu anyway?"))
             warnDlg.vbox.set_spacing(10)
             response = warnDlg.run()
-            if response == Gtk.ResponseType.YES :
+            if response == Gtk.ResponseType.YES:
                 print "removing '%s'" % self.desktopFile
                 os.system("rm -f '%s'" % self.desktopFile)
                 os.system("rm -f '%s.desktop'" % self.desktopFile)
-            warnDlg.destroy()            
-            sys.exit(0)     
+            warnDlg.destroy()
+            sys.exit(0)
 
-        warnDlg = Gtk.MessageDialog(None, 0, Gtk.MessageType.WARNING, Gtk.ButtonsType.OK_CANCEL, _("The following packages will be removed:"))            
+        warnDlg = Gtk.MessageDialog(None, 0, Gtk.MessageType.WARNING, Gtk.ButtonsType.OK_CANCEL, _("The following packages will be removed:"))
         warnDlg.vbox.set_spacing(10)
 
         treeview = Gtk.TreeView()
@@ -82,7 +84,7 @@ class mintRemoveWindow:
             model.append([dependency])
         treeview.set_model(model)
         treeview.show()
-        
+
         scrolledwindow = Gtk.ScrolledWindow()
         scrolledwindow.set_shadow_type(Gtk.ShadowType.ETCHED_OUT)
         scrolledwindow.set_size_request(150, 150)
@@ -92,16 +94,15 @@ class mintRemoveWindow:
         warnDlg.get_content_area().add(scrolledwindow)
 
         response = warnDlg.run()
-        if response == Gtk.ResponseType.OK :
+        if response == Gtk.ResponseType.OK:
             executer = RemoveExecuter(package)
             executer.start()
-        elif response == Gtk.ResponseType.CANCEL :
+        elif response == Gtk.ResponseType.CANCEL:
             sys.exit(0)
         warnDlg.destroy()
-                
+
         Gtk.main()
-        
+
 if __name__ == "__main__":
     mainwin = mintRemoveWindow(sys.argv[1])
     Gtk.main()
-    
