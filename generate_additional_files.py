@@ -10,7 +10,7 @@ PATH = "/usr/share/linuxmint/locale"
 prefix = "[Nemo Action]\n"
 
 suffix = """Exec=thunderbird -compose to=,\"attachment='%F'\"
-Stock-Id=gtk-dnd-multiple
+Icon-Name=mail-attachment
 Selection=NotNone
 Extensions=nodirs;
 Dependencies=thunderbird;
