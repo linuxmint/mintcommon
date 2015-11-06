@@ -1,3 +1,18 @@
+mint-common (1.1.9) rosa; urgency=medium
+
+  [ darealshinji ]
+  * delete temporarily created build files
+  * update Debian files
+  * add missing shebang to shell script
+  * mention license of configobj.py
+
+  [ Clement Lefebvre ]
+  * Prefer bash
+  * [darealshinji] delete python bytecode
+  * Updated desktop files
+
+ -- Clement Lefebvre <root@linuxmint.com>  Fri, 06 Nov 2015 16:54:48 +0000
+
 mint-common (1.1.8) betsy; urgency=medium
 
   * Changed the icon for the thunderbird nemo action
