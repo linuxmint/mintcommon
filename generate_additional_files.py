@@ -1,6 +1,8 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
-import os, gettext, sys
+import os
+import sys
+import gettext
 sys.path.append('/usr/lib/linuxmint/common')
 import additionalfiles
 

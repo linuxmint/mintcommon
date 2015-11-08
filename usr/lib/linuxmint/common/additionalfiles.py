@@ -1,6 +1,6 @@
-#!/usr/bin/python
+import os
+import gettext
 
-import os, gettext
 
 def generate(domain, path, filename, prefix, name, comment, suffix, genericName=None):
     gettext.install(domain, path)
@@ -29,7 +29,7 @@ def generate(domain, path, filename, prefix, name, comment, suffix, genericName=
                     desktopFile.writelines("Comment[%s]=%s\n" % (directory, _(comment)))
             except:
                 pass
-        
+
     if genericName is not None:
         desktopFile.writelines("GenericName=%s\n" % genericName)
         for directory in sorted(os.listdir(path)):
@@ -45,4 +45,3 @@ def generate(domain, path, filename, prefix, name, comment, suffix, genericName=
     desktopFile.writelines(suffix)
     os.environ['LANG'] = "en_US.UTF-8"
     gettext.install(domain, path)
-
