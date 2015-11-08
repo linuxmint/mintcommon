@@ -1,3 +1,9 @@
+mint-common (1.2.0) rosa; urgency=medium
+
+  * Fixed packaging regression in 1.1.9
+
+ -- Clement Lefebvre <root@linuxmint.com>  Sun, 08 Nov 2015 22:16:41 +0000
+
 mint-common (1.1.9) rosa; urgency=medium
 
   [ darealshinji ]
