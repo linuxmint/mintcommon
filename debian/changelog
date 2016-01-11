@@ -1,3 +1,9 @@
+mint-common (1.2.1) sarah; urgency=medium
+
+  * Changed shebangs to #!/usr/bin/python2
+
+ -- Clement Lefebvre <root@linuxmint.com>  Mon, 11 Jan 2016 15:59:47 +0000
+
 mint-common (1.2.0) rosa; urgency=medium
 
   * Fixed packaging regression in 1.1.9
