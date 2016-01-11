@@ -1,9 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/python2
 import gtk, sys
 
 def responseToDialog(entry, dialog, response):
 	dialog.response(response)
-    
+
 def showEntryDialog(primary_label="", label_name="", secondary_text="", title=""):
 	#base this on a message dialog
 	dialog = gtk.MessageDialog(

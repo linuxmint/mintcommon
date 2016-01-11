@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2
 
 import os, gettext, sys
 sys.path.append('/usr/lib/linuxmint/common')

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2
 
 import os
 import gettext
@@ -10,4 +10,4 @@ if os.path.exists("/usr/bin/gksu"):
 elif os.path.exists("/usr/bin/kdesudo"):
     launcher = "kdesudo -i /usr/share/linuxmint/logo.png -d --comment \"<b>" + _("Please enter your password") + "</b>\""
 
-print launcher
+print (launcher)
