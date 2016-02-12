@@ -1,6 +1,8 @@
 #!/usr/bin/python2
 
-import os, gettext
+import os
+import gettext
+
 
 def generate(domain, path, filename, prefix, name, comment, suffix, genericName=None):
     gettext.install(domain, path)
@@ -45,4 +47,3 @@ def generate(domain, path, filename, prefix, name, comment, suffix, genericName=
     desktopFile.writelines(suffix)
     os.environ['LANG'] = "en_US.UTF-8"
     gettext.install(domain, path)
-

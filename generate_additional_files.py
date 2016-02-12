@@ -1,6 +1,8 @@
 #!/usr/bin/python2
 
-import os, gettext, sys
+import os
+import gettext
+import sys
 sys.path.append('/usr/lib/linuxmint/common')
 import additionalfiles
 
