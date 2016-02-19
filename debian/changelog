@@ -1,3 +1,15 @@
+mint-common (1.2.2) sarah; urgency=medium
+
+  [ Clement Lefebvre ]
+  * Removed entrydialog (no longer used by mint-tools)
+
+  [ Daniel Alley ]
+  * PEP8 formatting
+  * updated debian/control (was out of date)
+  * fixed debian/control typo
+
+ -- Clement Lefebvre <root@linuxmint.com>  Fri, 19 Feb 2016 12:19:34 +0000
+
 mint-common (1.2.1) sarah; urgency=medium
 
   * Changed shebangs to #!/usr/bin/python2
