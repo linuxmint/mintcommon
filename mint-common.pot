@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2014-03-31 16:29+0100\n"
+"POT-Creation-Date: 2016-04-21 16:59+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -30,24 +30,24 @@ msgstr ""
 msgid "Application removed successfully"
 msgstr ""
 
-#: usr/lib/linuxmint/common/mint-remove-application.py:57
+#: usr/lib/linuxmint/common/mint-remove-application.py:58
 msgid ""
 "This menu item is not associated to any package. Do you want to remove it "
 "from the menu anyway?"
 msgstr ""
 
-#: usr/lib/linuxmint/common/mint-remove-application.py:67
+#: usr/lib/linuxmint/common/mint-remove-application.py:68
 msgid "The following packages will be removed:"
 msgstr ""
 
-#: usr/lib/linuxmint/common/mint-remove-application.py:71
+#: usr/lib/linuxmint/common/mint-remove-application.py:72
 msgid "Packages to be removed"
 msgstr ""
 
-#: generate_additional_files.py:49
+#: generate_additional_files.py:24
 msgid "Send by Email"
 msgstr ""
 
-#: generate_additional_files.py:49
+#: generate_additional_files.py:24
 msgid "Send as email attachment"
 msgstr ""
