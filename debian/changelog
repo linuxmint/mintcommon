@@ -1,3 +1,10 @@
+mint-common (1.2.4) sarah; urgency=medium
+
+  [ Daniel Alley ]
+  * Removed static configobj library
+
+ -- Clement Lefebvre <root@linuxmint.com>  Tue, 10 May 2016 18:30:26 +0100
+
 mint-common (1.2.3) sarah; urgency=medium
 
   * Updated generated files
