@@ -1,3 +1,13 @@
+mint-common (1.2.5) sarah; urgency=medium
+
+  [ Michael Webster ]
+  * additionalfiles.py: include keyword translations if provided
+
+  [ Clement Lefebvre ]
+  * Small fixes in usr/lib/linuxmint/common/mint-remove-application.py
+
+ -- Clement Lefebvre <root@linuxmint.com>  Mon, 30 May 2016 12:25:00 +0100
+
 mint-common (1.2.4) sarah; urgency=medium
 
   [ Daniel Alley ]
