@@ -1,7 +1,8 @@
 #!/usr/bin/python2
 
 import gi
-from gi.repository import Gtk  #, Gdk, GObject
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
 
 try:
     import sys
@@ -53,7 +54,7 @@ class MintRemoveWindow:
     def __init__(self, desktopFile):
         self.desktopFile = desktopFile
         (status, output) = commands.getstatusoutput("dpkg -S " + self.desktopFile)
-        package = output[:output.find(":")]
+        package = output[:output.find(":")].split(",")[0]
         if status != 0:
             warnDlg = Gtk.MessageDialog(None, 0, Gtk.MessageType.WARNING, Gtk.ButtonsType.YES_NO, _("This menu item is not associated to any package. Do you want to remove it from the menu anyway?"))
             warnDlg.vbox.set_spacing(10)
@@ -100,8 +101,11 @@ class MintRemoveWindow:
             sys.exit(0)
         warnDlg.destroy()
 
-        Gtk.main()
-
 if __name__ == "__main__":
+
+    # Exit if the given path does not exist
+    if len(sys.argv) < 2 or not os.path.exists(sys.argv[1]):
+        sys.exit(1)
+
     mainwin = MintRemoveWindow(sys.argv[1])
     Gtk.main()
