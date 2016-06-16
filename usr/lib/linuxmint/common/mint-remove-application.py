@@ -25,12 +25,11 @@ gettext.install("mint-common", "/usr/share/linuxmint/locale")
 
 class RemoveExecuter(threading.Thread):
 
-    def __init__(self, package):
+    def __init__(self, packages):
         threading.Thread.__init__(self)
-        self.package = package
+        self.packages = packages
 
     def run(self):
-        removePackages = string.split(self.package)
         cmd = ["sudo", "/usr/sbin/synaptic", "--hide-main-window",
                "--non-interactive"]
         cmd.append("--progress-str")
@@ -38,16 +37,17 @@ class RemoveExecuter(threading.Thread):
         cmd.append("--finish-str")
         cmd.append("\"" + _("Application removed successfully") + "\"")
         f = tempfile.NamedTemporaryFile()
-        for pkg in removePackages:
-            f.write("%s\tdeinstall\n" % pkg)
-            cmd.append("--set-selections-file")
-            cmd.append("%s" % f.name)
-            f.flush()
-            comnd = Popen(' '.join(cmd), shell=True)
+        strbuffer = ""
+        for pkg in self.packages:
+            strbuffer = strbuffer + "%s\tdeinstall\n" % pkg
+        f.write(strbuffer)
+        f.flush()
+        cmd.append("--set-selections-file")
+        cmd.append("%s" % f.name)
+        comnd = Popen(cmd)
         returnCode = comnd.wait()
         f.close()
         sys.exit(0)
-
 
 class MintRemoveWindow:
 
@@ -76,12 +76,14 @@ class MintRemoveWindow:
         column1.add_attribute(renderer, "text", 0)
         treeview.append_column(column1)
 
+        packages = []
         model = Gtk.ListStore(str)
         dependenciesString = commands.getoutput("apt-get -s -q remove " + package + " | grep Remv")
         dependencies = string.split(dependenciesString, "\n")
         for dependency in dependencies:
             dependency = dependency.replace("Remv ", "")
             model.append([dependency])
+            packages.append(dependency.split()[0])
         treeview.set_model(model)
         treeview.show()
 
@@ -95,7 +97,7 @@ class MintRemoveWindow:
 
         response = warnDlg.run()
         if response == Gtk.ResponseType.OK:
-            executer = RemoveExecuter(package)
+            executer = RemoveExecuter(packages)
             executer.start()
         elif response == Gtk.ResponseType.CANCEL:
             sys.exit(0)
