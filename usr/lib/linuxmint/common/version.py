@@ -1,13 +1,12 @@
-#!/usr/bin/python2
+#!/usr/bin/python3
 
-import apt
+import subprocess
 import sys
 
 try:
-    cache = apt.Cache()
-    pkg = cache[sys.argv[1]]
-    if pkg.installed is not None:
-        print (pkg.installed.version)
+    version = subprocess.getoutput("dpkg-query -W %s 2>/dev/null | cut -f2" % sys.argv[1])
+    if version is not None:
+        print (version)
     else:
         print ("")
 except:
