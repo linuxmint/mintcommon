@@ -1,14 +1,15 @@
-#!/usr/bin/python2
+#!/usr/bin/python3
 
-import apt
+import shlex
+import subprocess
 import sys
 
 try:
-    cache = apt.Cache()
-    pkg = cache[sys.argv[1]]
-    if pkg.installed is not None:
-        print (pkg.installed.version)
+    (status, version) = subprocess.getstatusoutput("/usr/bin/dpkg-query -f '${Version}' -W %s" % shlex.quote(sys.argv[1]))
+    if status == 0 and version is not None:
+        print (version)
     else:
         print ("")
 except:
     print ("")
+
