@@ -6,7 +6,6 @@
 
 import os
 import gettext
-import sys
 import argparse
 
 gettext.install("mint-common", "/usr/share/linuxmint/locale")
@@ -21,7 +20,7 @@ if os.path.exists("/usr/bin/pkexec"):
 elif os.path.exists("/usr/bin/gksu"):
     launcher = "gksu  --message \"<b>{0}</b>\"".format(args.prompt)
 elif os.path.exists("/usr/bin/kdesudo"):
-    launcher = "kdesudo -i {0} -d --comment \"<b>{1}</b>\"". \
-               format(args.icon, args.prompt)
+    launcher = "kdesudo -i {0} -d --comment \"<b>{1}</b>\"".format( \
+                 args.icon, args.prompt)
 
 print (launcher)
