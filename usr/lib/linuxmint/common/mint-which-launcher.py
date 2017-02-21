@@ -19,7 +19,7 @@ args = parser.parse_args()
 if os.path.exists('/usr/bin/pkexec'):
     launcher = 'pkexec'
 elif os.path.exists('/usr/bin/gksu'):
-    launcher = 'gksu  --message "<b>{0}</b>"'.format(args.prompt)
+    launcher = 'gksu --message "<b>{0}</b>"'.format(args.prompt)
 elif os.path.exists('/usr/bin/kdesudo'):
     launcher = 'kdesudo -i {0} -d --comment "<b>{1}</b>"'.format(
                  args.icon, args.prompt)
