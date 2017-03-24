@@ -12,9 +12,12 @@ def strip_split_and_recombine(comma_separated):
 
     return out
 
-def generate(domain, path, filename, prefix, name, comment, suffix, genericName=None, keywords=None):
+def generate(domain, path, filename, prefix, name, comment, suffix, genericName=None, keywords=None, append=False):
     gettext.install(domain, path)
-    desktopFile = open(filename, "w")
+    if append:
+        desktopFile = open(filename, "a")
+    else:
+        desktopFile = open(filename, "w")
 
     desktopFile.writelines(prefix)
 
