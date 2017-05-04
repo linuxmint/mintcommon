@@ -13,6 +13,7 @@ def strip_split_and_recombine(comma_separated):
     return out
 
 def generate(domain, path, filename, prefix, name, comment, suffix, genericName=None, keywords=None, append=False):
+    os.environ['LANGUAGE'] = "en_US.UTF-8"
     gettext.install(domain, path)
     if append:
         desktopFile = open(filename, "a")
@@ -32,16 +33,17 @@ def generate(domain, path, filename, prefix, name, comment, suffix, genericName=
             except:
                 pass
 
-    desktopFile.writelines("Comment=%s\n" % comment)
-    for directory in sorted(os.listdir(path)):
-        if os.path.isdir(os.path.join(path, directory)):
-            try:
-                language = gettext.translation(domain, path, languages=[directory])
-                language.install()
-                if (_(comment) != comment):
-                    desktopFile.writelines("Comment[%s]=%s\n" % (directory, _(comment)))
-            except:
-                pass
+    if comment is not None:
+        desktopFile.writelines("Comment=%s\n" % comment)
+        for directory in sorted(os.listdir(path)):
+            if os.path.isdir(os.path.join(path, directory)):
+                try:
+                    language = gettext.translation(domain, path, languages=[directory])
+                    language.install()
+                    if (_(comment) != comment):
+                        desktopFile.writelines("Comment[%s]=%s\n" % (directory, _(comment)))
+                except:
+                    pass
 
     if keywords is not None:
         formatted = strip_split_and_recombine(keywords)
@@ -70,5 +72,5 @@ def generate(domain, path, filename, prefix, name, comment, suffix, genericName=
                     pass
 
     desktopFile.writelines(suffix)
-    os.environ['LANG'] = "en_US.UTF-8"
+    os.environ['LANGUAGE'] = "en_US.UTF-8"
     gettext.install(domain, path)
