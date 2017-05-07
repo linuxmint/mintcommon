@@ -19,6 +19,6 @@ Dependencies=thunderbird;
 Separator=,
 """
 
-os.environ['LANG'] = "en_US.UTF-8"
+os.environ['LANGUAGE'] = "en_US.UTF-8"
 gettext.install(DOMAIN, PATH)
 additionalfiles.generate(DOMAIN, PATH, "usr/share/nemo/actions/mint-artwork-cinnamon-thunderbird.nemo_action", prefix, _("Send by Email"), _("Send as email attachment"), suffix)
