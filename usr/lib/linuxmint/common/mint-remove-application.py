@@ -57,6 +57,7 @@ class MintRemoveWindow:
         package = output[:output.find(":")].split(",")[0]
         if status != 0:
             warnDlg = Gtk.MessageDialog(None, 0, Gtk.MessageType.WARNING, Gtk.ButtonsType.YES_NO, _("This menu item is not associated to any package. Do you want to remove it from the menu anyway?"))
+            warnDlg.get_widget_for_response(Gtk.ResponseType.YES).grab_focus()
             warnDlg.vbox.set_spacing(10)
             response = warnDlg.run()
             if response == Gtk.ResponseType.YES:
@@ -67,6 +68,7 @@ class MintRemoveWindow:
             sys.exit(0)
 
         warnDlg = Gtk.MessageDialog(None, 0, Gtk.MessageType.WARNING, Gtk.ButtonsType.OK_CANCEL, _("The following packages will be removed:"))
+        warnDlg.get_widget_for_response(Gtk.ResponseType.OK).grab_focus()
         warnDlg.vbox.set_spacing(10)
 
         treeview = Gtk.TreeView()
