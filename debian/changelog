@@ -1,3 +1,10 @@
+mint-common (1.2.9) sylvia; urgency=medium
+
+  * Focus default buttons when using Gtk.MessageDialog.
+  * Remove nemo send-by-email action (moved to Nemo)
+
+ -- Clement Lefebvre <root@linuxmint.com>  Tue, 24 Oct 2017 11:01:25 +0100
+
 mint-common (1.2.8) sonya; urgency=medium
 
   * Additionalfiles: Support appending to file
