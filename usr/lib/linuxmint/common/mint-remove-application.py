@@ -33,9 +33,9 @@ class RemoveExecuter(threading.Thread):
         cmd = ["sudo", "/usr/sbin/synaptic", "--hide-main-window",
                "--non-interactive"]
         cmd.append("--progress-str")
-        cmd.append("\"" + _("Please wait, this can take some time") + "\"")
+        cmd.append(_("Please wait, this can take some time"))
         cmd.append("--finish-str")
-        cmd.append("\"" + _("Application removed successfully") + "\"")
+        cmd.append(_("Application removed successfully"))
         f = tempfile.NamedTemporaryFile()
         strbuffer = ""
         for pkg in self.packages:
