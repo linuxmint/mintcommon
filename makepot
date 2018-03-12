@@ -1,5 +1,5 @@
 #!/bin/bash
 
-xgettext --language=Python --keyword=_ --output=mint-common.pot usr/lib/linuxmint/common/mint-which-launcher.py usr/lib/linuxmint/common/mint-remove-application.py generate_additional_files.py
+xgettext --language=Python --keyword=_ --output=mint-common.pot usr/lib/linuxmint/common/mint-remove-application.py generate_additional_files.py
 
 

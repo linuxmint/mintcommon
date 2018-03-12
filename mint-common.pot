@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2016-04-21 16:59+0100\n"
+"POT-Creation-Date: 2018-03-12 12:53+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,30 +17,17 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: usr/lib/linuxmint/common/mint-which-launcher.py:9
-#: usr/lib/linuxmint/common/mint-which-launcher.py:11
-msgid "Please enter your password"
-msgstr ""
-
-#: usr/lib/linuxmint/common/mint-remove-application.py:36
-msgid "Please wait, this can take some time"
-msgstr ""
-
-#: usr/lib/linuxmint/common/mint-remove-application.py:38
-msgid "Application removed successfully"
-msgstr ""
-
-#: usr/lib/linuxmint/common/mint-remove-application.py:58
+#: usr/lib/linuxmint/common/mint-remove-application.py:55
 msgid ""
 "This menu item is not associated to any package. Do you want to remove it "
 "from the menu anyway?"
 msgstr ""
 
-#: usr/lib/linuxmint/common/mint-remove-application.py:68
+#: usr/lib/linuxmint/common/mint-remove-application.py:66
 msgid "The following packages will be removed:"
 msgstr ""
 
-#: usr/lib/linuxmint/common/mint-remove-application.py:72
+#: usr/lib/linuxmint/common/mint-remove-application.py:71
 msgid "Packages to be removed"
 msgstr ""
 
