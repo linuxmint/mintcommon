@@ -55,6 +55,8 @@ class APT(object):
                 res = dia.run()
                 dia.hide()
                 if res != Gtk.ResponseType.OK:
+                    if self.finished_callback is not None:
+                        self.finished_callback()
                     return
             self._run_transaction(trans)
         except Exception as e:
