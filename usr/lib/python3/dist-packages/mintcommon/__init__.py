@@ -33,6 +33,10 @@ class APT(object):
         aptdaemon_client = aptdaemon.client.AptClient()
         aptdaemon_client.install_packages(packages, reply_handler=self._simulate_trans, error_handler=self._on_error)
 
+    def remove_packages(self, packages):
+        aptdaemon_client = aptdaemon.client.AptClient()
+        aptdaemon_client.remove_packages(packages, reply_handler=self._simulate_trans, error_handler=self._on_error)
+
     def _run_transaction(self, transaction):
         if self.progress_callback is None:
             dia = AptProgressDialog(transaction, parent=self.parent_window)
