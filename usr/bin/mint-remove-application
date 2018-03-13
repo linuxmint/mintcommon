@@ -1,0 +1,3 @@
+#!/bin/bash
+
+pkexec /usr/lib/linuxmint/common/mint-remove-application.py $1

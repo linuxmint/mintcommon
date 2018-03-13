@@ -10,8 +10,7 @@ Architecture: all
 Depends: python (>= 2.4), python (<< 3),
          python-gi,
          mint-translations,
-         libgtk3-perl,
-         synaptic,
+         libgtk3-perl
          ${misc:Depends},
 Description: Common scripts and resources for Linux Mint
  A collection of scripts and resources used by other Linux Mint packages
