@@ -17,12 +17,22 @@ class APT(object):
 
     def __init__(self, parent_window=None):
         self.parent_window = parent_window
-        self.set_callbacks() # initialize callbacks to None
+        self.progress_callback = None
+        self.finished_callback = None
+        self.error_callback = None
+        self.cancelled_callback = None
 
-    def set_callbacks(self, progress_callback=None, finished_callback=None, error_callback=None):
+    def set_progress_callback(self, progress_callback):
         self.progress_callback = progress_callback
+
+    def set_finished_callback(self, finished_callback):
         self.finished_callback = finished_callback
+
+    def set_error_callback(self, error_callback):
         self.error_callback = error_callback
+
+    def set_cancelled_callback(self, cancelled_callback):
+        self.cancelled_callback = cancelled_callback
 
     def update_cache(self):
         aptdaemon_client = aptdaemon.client.AptClient()
@@ -55,8 +65,8 @@ class APT(object):
                 res = dia.run()
                 dia.hide()
                 if res != Gtk.ResponseType.OK:
-                    if self.finished_callback is not None:
-                        self.finished_callback()
+                    if self.cancelled_callback is not None:
+                        self.cancelled_callback()
                     return
             self._run_transaction(trans)
         except Exception as e:
@@ -75,7 +85,7 @@ class APT(object):
 
     def _on_finish(self, transaction, exit_state):
         if self.finished_callback is not None:
-            self.finished_callback()
+            self.finished_callback(transaction, exit_state)
 
 class AptDaemonTransaction():
 
@@ -107,5 +117,4 @@ class AptDaemonTransaction():
     def on_transaction_finish(self, transaction, exit_state):
         if (exit_state == aptdaemon.enums.EXIT_SUCCESS):
             if self.finished_callback is not None:
-                self.finished_callback()
-            #self.application.update_state(self.package)
+                self.finished_callback(transaction, exit_state)
