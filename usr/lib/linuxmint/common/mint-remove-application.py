@@ -21,15 +21,17 @@ class MintRemoveWindow:
         (status, output) = subprocess.getstatusoutput("dpkg -S " + self.desktopFile)
         package = output[:output.find(":")].split(",")[0]
         if status != 0:
-            warnDlg = Gtk.MessageDialog(None, 0, Gtk.MessageType.WARNING, Gtk.ButtonsType.YES_NO, _("This menu item is not associated to any package. Do you want to remove it from the menu anyway?"))
-            warnDlg.get_widget_for_response(Gtk.ResponseType.YES).grab_focus()
-            warnDlg.vbox.set_spacing(10)
-            response = warnDlg.run()
-            if response == Gtk.ResponseType.YES:
-                print ("removing '%s'" % self.desktopFile)
-                os.system("rm -f '%s'" % self.desktopFile)
-                os.system("rm -f '%s.desktop'" % self.desktopFile)
-            warnDlg.destroy()
+            if not self.try_remove_flatpak(desktopFile):
+                warnDlg = Gtk.MessageDialog(None, 0, Gtk.MessageType.WARNING, Gtk.ButtonsType.YES_NO, _("This menu item is not associated to any package. Do you want to remove it from the menu anyway?"))
+                warnDlg.get_widget_for_response(Gtk.ResponseType.YES).grab_focus()
+                warnDlg.vbox.set_spacing(10)
+                response = warnDlg.run()
+                if response == Gtk.ResponseType.YES:
+                    print ("removing '%s'" % self.desktopFile)
+                    os.system("rm -f '%s'" % self.desktopFile)
+                    os.system("rm -f '%s.desktop'" % self.desktopFile)
+                warnDlg.destroy()
+
             sys.exit(0)
 
         warnDlg = Gtk.MessageDialog(None, 0, Gtk.MessageType.WARNING, Gtk.ButtonsType.OK_CANCEL, _("The following packages will be removed:"))
@@ -72,6 +74,18 @@ class MintRemoveWindow:
             sys.exit(0)
 
         warnDlg.destroy()
+
+    def try_remove_flatpak(self, desktopFile):
+        if not "flatpak" in desktopFile:
+            return False
+
+        if not os.path.exits('/usr/bin/mintinstall-remove-app'):
+            return False
+
+        flatpak_remover = subprocess.Popen(['/usr/bin/mintinstall-remove-app', desktopFile])
+        retcode = flatpak_remover.wait()
+
+        return retcode == 0
 
     def on_finished(self, transaction=None, exit_state=None):
         sys.exit(0)
