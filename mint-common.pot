@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2018-03-12 12:53+0000\n"
+"POT-Creation-Date: 2018-05-07 11:45+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,17 +17,17 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: usr/lib/linuxmint/common/mint-remove-application.py:55
+#: usr/lib/linuxmint/common/mint-remove-application.py:25
 msgid ""
 "This menu item is not associated to any package. Do you want to remove it "
 "from the menu anyway?"
 msgstr ""
 
-#: usr/lib/linuxmint/common/mint-remove-application.py:66
+#: usr/lib/linuxmint/common/mint-remove-application.py:37
 msgid "The following packages will be removed:"
 msgstr ""
 
-#: usr/lib/linuxmint/common/mint-remove-application.py:71
+#: usr/lib/linuxmint/common/mint-remove-application.py:42
 msgid "Packages to be removed"
 msgstr ""
 
