@@ -1,3 +1,22 @@
+mint-common (1.3.0) tara; urgency=medium
+
+  [ Clement Lefebvre ]
+  * Remove progress arguments in synaptic call.
+  * Remove mint-which-launcher.py
+  * Provide an APTdaemon interface in Python3
+  * AptDaemon: Add the ability to remove packages
+  * AptDaemon: Call finished callback when the user cancel the installation
+  * AptDaemon: Improve callbacks
+  * Migrate mint-remove-application to python3/aptdaemon/pkexec
+
+  [ Michael Webster ]
+  * mint-remove-application.py: let mintinstall's removal script attempt to uninstall flatpak apps.
+
+  [ Clement Lefebvre ]
+  * l10n: Update files
+
+ -- Clement Lefebvre <root@linuxmint.com>  Mon, 07 May 2018 11:47:25 +0100
+
 mint-common (1.2.9) sylvia; urgency=medium
 
   * Focus default buttons when using Gtk.MessageDialog.
