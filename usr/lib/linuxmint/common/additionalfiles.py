@@ -74,3 +74,28 @@ def generate(domain, path, filename, prefix, name, comment, suffix, genericName=
     desktopFile.writelines(suffix)
     os.environ['LANGUAGE'] = "en_US.UTF-8"
     gettext.install(domain, path)
+
+def generate_polkit_policy(domain, path, filename, prefix, message, suffix, append=False):
+    os.environ['LANGUAGE'] = "en_US.UTF-8"
+    gettext.install(domain, path)
+    if append:
+        desktopFile = open(filename, "a")
+    else:
+        desktopFile = open(filename, "w")
+
+    desktopFile.writelines(prefix)
+
+    desktopFile.writelines("<message>%s</message>\n" % message)
+    for directory in sorted(os.listdir(path)):
+        if os.path.isdir(os.path.join(path, directory)):
+            try:
+                language = gettext.translation(domain, path, languages=[directory])
+                language.install()
+                if (_(message) != message):
+                    desktopFile.writelines("<message xml:lang=\"%s\">%s</message>\n" % (directory, _(message)))
+            except:
+                pass
+
+    desktopFile.writelines(suffix)
+    os.environ['LANGUAGE'] = "en_US.UTF-8"
+    gettext.install(domain, path)
