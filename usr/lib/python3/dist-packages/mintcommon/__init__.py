@@ -39,6 +39,10 @@ class APT(object):
         update_transaction = aptdaemon_client.update_cache()
         self._run_transaction(update_transaction)
 
+    def install_file(self, path):
+        aptdaemon_client = aptdaemon.client.AptClient()
+        aptdaemon_client.install_file(path, force=False, wait=False, reply_handler=self._simulate_trans, error_handler=self._on_error)
+
     def install_packages(self, packages):
         aptdaemon_client = aptdaemon.client.AptClient()
         aptdaemon_client.install_packages(packages, reply_handler=self._simulate_trans, error_handler=self._on_error)
