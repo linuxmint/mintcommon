@@ -41,7 +41,7 @@ class APT(object):
 
     def install_file(self, path):
         aptdaemon_client = aptdaemon.client.AptClient()
-        aptdaemon_client.install_file(path, force=False, wait=False, reply_handler=self._simulate_trans, error_handler=self._on_error)
+        aptdaemon_client.install_file(path, force=True, wait=False, reply_handler=self._simulate_trans, error_handler=self._on_error)
 
     def install_packages(self, packages):
         aptdaemon_client = aptdaemon.client.AptClient()
