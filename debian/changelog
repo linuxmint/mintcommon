@@ -1,3 +1,16 @@
+mint-common (1.3.1) tara; urgency=medium
+
+  [ Clement Lefebvre ]
+  * additionalfiles: Add the ability to generate polkit policies
+
+  [ monsta ]
+  * remove ancient launch_browser_as.py script (#26)
+
+  [ Clement Lefebvre ]
+  * Add support to install local .deb files
+
+ -- Clement Lefebvre <root@linuxmint.com>  Wed, 06 Jun 2018 11:58:25 +0100
+
 mint-common (1.3.0) tara; urgency=medium
 
   [ Clement Lefebvre ]
