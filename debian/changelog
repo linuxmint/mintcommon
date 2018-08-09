@@ -1,3 +1,10 @@
+mint-common (1.3.4) tara; urgency=medium
+
+  [ Michael Webster ]
+  * Use auth_admin for polkit authentication - this will require an admin user, instead of allowing the current user to perform elevated actions.
+
+ -- Clement Lefebvre <root@linuxmint.com>  Thu, 09 Aug 2018 17:45:15 +0200
+
 mint-common (1.3.3) tara; urgency=medium
 
   [ monsta ]
