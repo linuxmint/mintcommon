@@ -1,5 +1,5 @@
-#!/bin/bash
+#!/bin/sh
 
 sudo rm -rf /usr/lib/linuxmint/common
+sudo rm -rf /usr/lib/python3/dist-packages/mintcommon
 sudo cp -R usr /
-

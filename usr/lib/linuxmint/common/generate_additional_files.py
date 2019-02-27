@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/python3
 
 import os
 import gettext
@@ -8,7 +8,7 @@ PATH = "/usr/share/linuxmint/locale"
 
 
 def generate(filename, prefix, name, comment, suffix):
-    print "HERE"
+    print("HERE")
     os.environ['LANG'] = "en_US.UTF-8"
     gettext.install(DOMAIN, PATH)
     desktopFile = open(filename, "w")

@@ -1,15 +1,15 @@
 #!/usr/bin/python3
 
+import gettext
+import os
+import subprocess
+import sys
+
 import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 
-import sys
-import string
-import os
-import gettext
-import mintcommon
-import subprocess
+import mintcommon.aptdaemon
 
 # i18n
 gettext.install("mint-common", "/usr/share/linuxmint/locale")
@@ -64,7 +64,7 @@ class MintRemoveWindow:
 
         warnDlg.get_content_area().add(scrolledwindow)
 
-        self.apt = mintcommon.APT(warnDlg)
+        self.apt = mintcommon.aptdaemon.APT(warnDlg)
 
         response = warnDlg.run()
         if response == Gtk.ResponseType.OK:
