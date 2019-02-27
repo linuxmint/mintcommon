@@ -1,4 +1,3 @@
-__version__ = "2.0.0"
 
 """Collection of classes shared by Mint packages."""
 
