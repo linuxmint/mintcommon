@@ -1,17 +1,13 @@
 #!/usr/bin/python3
 
-import shlex
 import subprocess
 import sys
 
 
 def get_version(pkg_name):
     try:
-        (status, version) = subprocess.getstatusoutput("/usr/bin/dpkg-query -f '${Version}' -W %s" % shlex.quote(pkg_name))
-        if status == 0 and version is not None:
-            return version
-        else:
-            return ""
+        return subprocess.run(["/usr/bin/dpkg-query", "-Wf", "${Version}", pkg_name],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True).stdout.decode()
     except:
         return ""
 
