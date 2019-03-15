@@ -460,6 +460,8 @@ Proceed with the download?"
             _generic_exception_handler(e)
         else:
             if _r:
+                if not _r.encoding:
+                    _r.encoding = "utf-8"
                 length = _r.headers.get("Content-Length")
                 if length:
                     _r.length = int(length)
