@@ -396,7 +396,7 @@ Proceed with the download?"
 
         # check if pkg_name exists
         # unlike apt no pattern matching, a single exact match only
-        if pkg_name in self.apt_cache.keys():
+        if pkg_name in self.apt_cache:
             pkg = self.apt_cache[pkg_name]
         else:
             print("E: Unable to locate package %s" % pkg_name, file=sys.stderr)
