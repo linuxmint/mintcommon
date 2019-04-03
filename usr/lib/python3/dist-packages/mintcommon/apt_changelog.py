@@ -582,30 +582,28 @@ Proceed with the download?"
 
         def get_kernel_version_from_meta_package(pkg):
             for dependency in pkg.dependencies:
-                if not dependency.target_versions:
+                if not dependency.target_versions or not dependency.rawtype == "Depends":
                     if _DEBUG: print("W: Kernel dependency not found:", dependency)
                     return None
                 deppkg = dependency.target_versions[0]
                 if deppkg.source_name in ("linux", "linux-signed"):
                     return deppkg.source_version
-                if deppkg.source_name == "linux-meta":
+                if deppkg.source_name.startswith("linux-meta"):
                     _pkg = self.parse_package_metadata(str(deppkg))
                     return get_kernel_version_from_meta_package(_pkg)
             return None
 
         # Ubuntu kernel meta package workaround
-        if (self.candidate.origin == "Ubuntu" and
-            self.candidate.source_name == "linux-meta"
-            ):
+        if self.candidate.origin == "Ubuntu" and \
+           self.candidate.source_name.startswith("linux-meta"):
             _source_version = get_kernel_version_from_meta_package(self.candidate)
             if _source_version:
                 source_version = _source_version
                 self.candidate.source_name = "linux"
 
         # Ubuntu signed kernel workaround
-        if (self.candidate.origin == "Ubuntu" and
-            self.candidate.source_name == "linux-signed"
-            ):
+        if self.candidate.origin == "Ubuntu" and \
+           self.candidate.source_name == "linux-signed":
             self.candidate.source_name = "linux"
 
         # XXX:  Debian does not seem to reliably keep changelogs for previous
