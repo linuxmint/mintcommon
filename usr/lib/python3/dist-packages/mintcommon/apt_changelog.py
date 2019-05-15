@@ -199,24 +199,11 @@ Proceed with the download?"
         elif origin == 'LP-PPA':
             ppa_owner, ppa_name, _ = \
                 self.candidate.uri.split("ppa.launchpad.net/")[1].split("/", 2)
-            base_uri = "http://ppa.launchpad.net/%(owner)s/%(name)s/ubuntu/pool/main/%(source_prefix)s/%(source_name)s" % \
-                {
-                    "owner": ppa_owner,
-                    "name": ppa_name,
-                    "source_prefix": self.source_prefix(),
-                    "source_name": self.candidate.source_name
-                }
-
+            base_uri = f"http://ppa.launchpad.net/{ppa_owner}/{ppa_name}/ubuntu/pool/main/{self.source_prefix()}/{self.candidate.source_name}"
             r, uri = self.get_changelog_uri(base_uri)
             if not r:
                 # fall back to last change info only
-                uri = "https://launchpad.net/~%(owner)s/+archive/ubuntu/%(name)s/+files/%(source_name)s_%(source_version)s_source.changes" % \
-                    {
-                        "owner" : ppa_owner,
-                        "name": ppa_name,
-                        "source_name": self.candidate.source_name,
-                        "source_version": self.candidate.source_version
-                    }
+                uri = f"https://launchpad.net/~{ppa_owner}/+archive/ubuntu/{ppa_name}/+files/{self.candidate.source_name}_{self.candidate.source_version}_source.changes"
                 r = self.check_url(uri, False)
                 if not r:
                     self.exit_on_fail(4)
@@ -350,7 +337,7 @@ Proceed with the download?"
                         if "/debian/changelog" in lines[0]:
                             for line in lines[2:]:
                                 if line.startswith("+"):
-                                    changelog += "%s\n" % line[1:]
+                                    changelog += f"{line[1:]}\n"
                                 else:
                                     break
                     if not changelog:
@@ -396,10 +383,10 @@ Proceed with the download?"
 
         # check if pkg_name exists
         # unlike apt no pattern matching, a single exact match only
-        if pkg_name in self.apt_cache.keys():
+        if pkg_name in self.apt_cache:
             pkg = self.apt_cache[pkg_name]
         else:
-            print("E: Unable to locate package %s" % pkg_name, file=sys.stderr)
+            print(f"E: Unable to locate package {pkg_name}", file=sys.stderr)
             self.close(13)
 
         # get package data
@@ -420,11 +407,11 @@ Proceed with the download?"
                     break
             if not match_found:
                 if pkg_release:
-                    print('E: Release "%s" is unavailable for "%s"' %
-                        (pkg_release, pkg.name), file=sys.stderr)
+                    print(f'E: Release "{pkg_release}" is unavailable for "{pkg.name}"',
+                          file=sys.stderr)
                 else:
-                    print('E: Version "%s" is unavailable for "%s"' %
-                        (pkg_version, pkg.name), file=sys.stderr)
+                    print(f'E: Version {pkg_version}" is unavailable for "{pkg.name}"',
+                          file=sys.stderr)
                 self.close(14)
         else:
             _candidate = pkg.candidate
@@ -460,6 +447,8 @@ Proceed with the download?"
             _generic_exception_handler(e)
         else:
             if _r:
+                if not _r.encoding:
+                    _r.encoding = "utf-8"
                 length = _r.headers.get("Content-Length")
                 if length:
                     _r.length = int(length)
@@ -484,11 +473,10 @@ Proceed with the download?"
     def exit_on_fail(self, err:int=404):
         """ Prints error message and calls self.close() """
         try:
-            details = "Changelog unavailable for %s=%s" %\
-                (self.candidate.source_name, self.candidate.source_version_raw)
+            details = f"Changelog unavailable for {self.candidate.source_name}={self.candidate.source_version_raw}"
         except AttributeError:
             details = ""
-        print("E: Failed to fetch changelog. %s" % details, file=sys.stderr)
+        print(f"E: Failed to fetch changelog. {details}", file=sys.stderr)
         self.close(err)
 
     @staticmethod
@@ -499,21 +487,21 @@ Proceed with the download?"
         elif val in ('n', 'no'):
             return False
         else:
-            raise ValueError("Invalid response value %r" % (val,))
+            raise ValueError(f"Invalid response value {val}")
 
     def user_confirm(self, q:str):
         """ returns bool (always False in non-interactive mode) """
         if not self.interactive:
             if _DEBUG: print("Maximum size exceeded, skipping in non-interactive mode")
             return False
-        print('%s [y/n] ' % q, end='')
+        print(f"{q} [y/n] ", end="")
         while True:
             try:
                 response = self.strtobool(input())
                 print("")
                 return response
             except ValueError:
-                print('Invalid response. Try again [y/n]: ', end='')
+                print("Invalid response. Try again [y/n]: ", end="")
             except KeyboardInterrupt:
                 pass
 
@@ -558,18 +546,18 @@ Proceed with the download?"
         """
         files = [s for s in filelist if "changelog" in s.lower()]
         if local:
-            testpath = '/usr/share/doc/%s/changelog' % self.candidate.name
+            testpath = f"/usr/share/doc/{self.candidate.name}/changelog"
             for item in files:
                 if item.lower().startswith(testpath):
                     return item
         else:
-            testpath = 'debian/changelog'
+            testpath = "debian/changelog"
             if testpath in files:
                 return testpath
-            testpath = 'recipe/debian/changelog'
+            testpath = "recipe/debian/changelog"
             if testpath in files:
                 return testpath
-            testpath = 'usr/share/doc/%s/changelog' % self.candidate.name
+            testpath = f"usr/share/doc/{self.candidate.name}/changelog"
             for item in files:
                 if item.lower().startswith(testpath):
                     return item
@@ -594,30 +582,28 @@ Proceed with the download?"
 
         def get_kernel_version_from_meta_package(pkg):
             for dependency in pkg.dependencies:
-                if not dependency.target_versions:
+                if not dependency.target_versions or not dependency.rawtype == "Depends":
                     if _DEBUG: print("W: Kernel dependency not found:", dependency)
                     return None
                 deppkg = dependency.target_versions[0]
                 if deppkg.source_name in ("linux", "linux-signed"):
                     return deppkg.source_version
-                if deppkg.source_name == "linux-meta":
+                if deppkg.source_name.startswith("linux-meta"):
                     _pkg = self.parse_package_metadata(str(deppkg))
                     return get_kernel_version_from_meta_package(_pkg)
             return None
 
         # Ubuntu kernel meta package workaround
-        if (self.candidate.origin == "Ubuntu" and
-            self.candidate.source_name == "linux-meta"
-            ):
+        if self.candidate.origin == "Ubuntu" and \
+           self.candidate.source_name.startswith("linux-meta"):
             _source_version = get_kernel_version_from_meta_package(self.candidate)
             if _source_version:
                 source_version = _source_version
                 self.candidate.source_name = "linux"
 
         # Ubuntu signed kernel workaround
-        if (self.candidate.origin == "Ubuntu" and
-            self.candidate.source_name == "linux-signed"
-            ):
+        if self.candidate.origin == "Ubuntu" and \
+           self.candidate.source_name == "linux-signed":
             self.candidate.source_name = "linux"
 
         # XXX:  Debian does not seem to reliably keep changelogs for previous
@@ -679,14 +665,13 @@ Proceed with the download?"
         # XXX:  For APT sources we could just read the apt_pkg.SourceRecords()
         #       directly, if available, which it is not for most users, so
         #       probably not worth it
-        target_filename = self.parse_dsc("%s/%s_%s.dsc" %
-            (base_uri, self.candidate.source_name, self.candidate.source_version))
+        target_filename = self.parse_dsc(f"{base_uri}/{self.candidate.source_name}_{self.candidate.source_version}.dsc")
         # get .debian.tar.xz or .diff.gz as a priority as the smallest options
         if (base_uri and target_filename and (
                 target_filename.lower().endswith('.debian.tar.xz') or
                 target_filename.lower().endswith('.diff.gz')
             )):
-            uri = "%s/%s" % (base_uri, target_filename)
+            uri = f"{base_uri}/{target_filename}"
             target_filename = None
             r = self.check_url(uri, msg = self.max_download_size_msg)
         else:
@@ -698,7 +683,7 @@ Proceed with the download?"
                 # cache miss, download the full source package or the .deb,
                 # depending on size and availability
                 if target_filename:
-                    uri_tar = "%s/%s" % (base_uri, target_filename)
+                    uri_tar = f"{base_uri}/{target_filename}"
                 else:
                     uri_tar = None
                 r, uri = self.get_deb_or_tar(uri_tar)
@@ -707,8 +692,8 @@ Proceed with the download?"
 def _generic_exception_handler(e):
     if _DEBUG:
         import traceback
-        print("%s: %s\n" % (e.__class__.__name__, traceback.format_exc()),
-            file=sys.stderr)
+        print(f"{e.__class__.__name__}: {traceback.format_exc()}\n",
+              file=sys.stderr)
 
 def drop_cache():
     """ Drop the apt cache to free up memory. """
