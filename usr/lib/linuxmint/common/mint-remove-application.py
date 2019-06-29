@@ -18,9 +18,10 @@ class MintRemoveWindow:
 
     def __init__(self, desktopFile):
         self.desktopFile = desktopFile
-        (status, output) = subprocess.getstatusoutput("dpkg -S " + self.desktopFile)
+        process = subprocess.run(["dpkg", "-S", self.desktopFile], stdout=subprocess.PIPE)
+        output = process.stdout.decode("utf-8")
         package = output[:output.find(":")].split(",")[0]
-        if status != 0:
+        if process.returncode != 0:
             if not self.try_remove_flatpak(desktopFile):
                 warnDlg = Gtk.MessageDialog(None, 0, Gtk.MessageType.WARNING, Gtk.ButtonsType.YES_NO, _("This menu item is not associated to any package. Do you want to remove it from the menu anyway?"))
                 warnDlg.get_widget_for_response(Gtk.ResponseType.YES).grab_focus()
@@ -28,8 +29,8 @@ class MintRemoveWindow:
                 response = warnDlg.run()
                 if response == Gtk.ResponseType.YES:
                     print ("removing '%s'" % self.desktopFile)
-                    os.system("rm -f '%s'" % self.desktopFile)
-                    os.system("rm -f '%s.desktop'" % self.desktopFile)
+                    subprocess.run(["rm", "-f", self.desktopFile])
+                    subprocess.run(["rm", "-f", "%s.desktop" % self.desktopFile])
                 warnDlg.destroy()
 
             sys.exit(0)
