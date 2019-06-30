@@ -1,3 +1,11 @@
+mint-common (2.0.1) tina; urgency=medium
+
+  * Remove version module
+  * apt_changelog fixes
+  * mint-remove-application: Sanitize process/subprocess module calls
+
+ -- Clement Lefebvre <root@linuxmint.com>  Sun, 30 Jun 2019 15:20:32 +0200
+
 mint-common (2.0.0) tessa; urgency=medium
 
   [ gm10 ]
