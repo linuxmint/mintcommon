@@ -68,7 +68,11 @@ def _get_remote_name_by_url(fp_sys, url):
         remotes = []
 
     for remote in remotes:
-        if remote.get_url() == url:
+        remote_url = remote.get_url()
+        if remote_url.endswith('/'): #flatpakrefs are often missing the trailing forward slash in the url
+            remote_url = remote_url[:-1]
+        print(remote_url)
+        if remote_url == url:
             name = remote.get_name()
 
     return name
@@ -785,6 +789,7 @@ def _pkginfo_from_file_thread(cache, file, callback):
 
     ref = None
     pkginfo = None
+    remote_name = None
 
     with open(path) as f:
         contents = f.read()
@@ -793,33 +798,33 @@ def _pkginfo_from_file_thread(cache, file, callback):
         gb = GLib.Bytes(b)
 
         try:
-            ref = fp_sys.install_ref_file(gb, None)
-        except GLib.Error as e:
-            if e.code == Flatpak.Error.ALREADY_INSTALLED:
-                try:
-                    kf = GLib.KeyFile()
-                    if kf.load_from_file(path, GLib.KeyFileFlags.NONE):
-                        name = kf.get_string("Flatpak Ref", "Name")
-                        branch = kf.get_string("Flatpak Ref", "Branch")
-                        url = kf.get_string("Flatpak Ref", "Url")
-                        if name and branch and url:
-                            basic_ref = Flatpak.Ref.parse("app/%s/%s/%s" % (name, Flatpak.get_default_arch(), branch))
-                            remote_name = _get_remote_name_by_url(fp_sys, url)
-
-                            ref = Flatpak.RemoteRef(remote_name=remote_name,
-                                                    kind=basic_ref.get_kind(),
-                                                    arch=basic_ref.get_arch(),
-                                                    branch=basic_ref.get_branch(),
-                                                    name=basic_ref.get_name())
-                except GLib.Error:
-                    print("MintInstall: flatpak package already installed, but an error occurred finding it")
-            elif e.code != Gio.DBusError.ACCESS_DENIED: # user cancelling auth prompt for adding a remote
-                print("MintInstall: could not read .flatpakref file: %s" % e.message)
-                dialogs.show_flatpak_error(e.message)
+            kf = GLib.KeyFile()
+            if kf.load_from_file(path, GLib.KeyFileFlags.NONE):
+                name = kf.get_string("Flatpak Ref", "Name")
+                branch = kf.get_string("Flatpak Ref", "Branch")
+                url = kf.get_string("Flatpak Ref", "Url")
+                remote_name = _get_remote_name_by_url(fp_sys, url)
+                if name and branch and remote_name:
+                    basic_ref = Flatpak.Ref.parse("app/%s/%s/%s" % (name, Flatpak.get_default_arch(), branch))
+                    ref = Flatpak.RemoteRef(remote_name=remote_name,
+                                            kind=basic_ref.get_kind(),
+                                            arch=basic_ref.get_arch(),
+                                            branch=basic_ref.get_branch(),
+                                            name=basic_ref.get_name())
+                else: #If Flatpakref is not installed already
+                    try:
+                         ref = fp_sys.install_ref_file(gb, None)
+                         remote_name = ref.get_remote_name()
+                    except GLib.Error as e:
+                        dialogs.show_flatpak_error(e.message)
+                        if e.code == Gio.DBusError.ACCESS_DENIED: # user cancelling auth prompt for adding a remote
+                            print("MintInstall: could not read .flatpakref file: %s" % e.message)
+                            dialogs.show_flatpak_error(e.message)
+        except GLib.Error:
+            print("MintInstall: flatpak package already installed, but an error occurred finding it")
 
         if ref:
             try:
-                remote_name = ref.get_remote_name()
                 remote = fp_sys.get_remote_by_name(remote_name, None)
 
                 # Add the ref's remote if it doesn't already exist
@@ -872,8 +877,7 @@ def _pkginfo_from_file_thread(cache, file, callback):
                                     existing = True
                                     break
 
-                            # if not existing:
-                            if True:
+                            if not existing:
                                 print("MintInstall: Adding additional runtime remote named '%s' at '%s'" % (runtime_remote_name, runtime_repo_url))
 
                                 cmd_v = ['flatpak',
