@@ -71,7 +71,7 @@ def _get_remote_name_by_url(fp_sys, url):
         remote_url = remote.get_url()
         if remote_url.endswith('/'): #flatpakrefs are often missing the trailing forward slash in the url
             remote_url = remote_url[:-1]
-        print(remote_url)
+
         if remote_url == url:
             name = remote.get_name()
 
@@ -811,10 +811,12 @@ def _pkginfo_from_file_thread(cache, file, callback):
                                             arch=basic_ref.get_arch(),
                                             branch=basic_ref.get_branch(),
                                             name=basic_ref.get_name())
+                    print("MintInstall: flatpak - using existing remote '%s' for flatpakref file install" % remote_name)
                 else: #If Flatpakref is not installed already
                     try:
-                         ref = fp_sys.install_ref_file(gb, None)
-                         remote_name = ref.get_remote_name()
+                        print("MintInstall: flatpak - adding remote '%s' for flatpakref file install" % remote_name)
+                        ref = fp_sys.install_ref_file(gb, None)
+                        remote_name = ref.get_remote_name()
                     except GLib.Error as e:
                         dialogs.show_flatpak_error(e.message)
                         if e.code == Gio.DBusError.ACCESS_DENIED: # user cancelling auth prompt for adding a remote
@@ -873,7 +875,7 @@ def _pkginfo_from_file_thread(cache, file, callback):
                             for remote in fp_sys.list_remotes(None):
                                 # See comments below in _remote_from_repo_file_thread about get_noenumerate() use.
                                 if remote.get_url() == runtime_repo_url and not remote.get_noenumerate():
-                                    print("MintInstall: runtime remote '%s' already in system, skipping" % runtime_remote_name)
+                                    print("MintInstall: flatpak - runtime remote '%s' already in system, skipping" % runtime_remote_name)
                                     existing = True
                                     break
 
