@@ -548,22 +548,3 @@ class Installer:
 
     def _run_client_callback(self, task):
         GObject.idle_add(task.client_finished_cb, task.pkginfo, task.error_message)
-
-def interact():
-    import readline
-    import code
-    variables = globals().copy()
-    variables.update(locals())
-    shell = code.InteractiveConsole(variables)
-    shell.interact()
-
-# Debugging - you can run installer.py on its own, and test things with the Installer (i)
-
-if __name__ == "__main__":
-    signal.signal(signal.SIGINT, signal.SIG_DFL)
-
-    i = Installer()
-    i.init(ready_callback=interact)
-
-    ml = GLib.MainLoop.new(None, True)
-    ml.run()

@@ -1,0 +1,33 @@
+#!/usr/bin/python3
+import subprocess
+import signal
+import readline
+import code
+
+from gi.repository import GLib
+from mintcommon.installer import installer, cache, _flatpak, _apt
+
+def interact():
+    variables = globals().copy()
+    variables.update(locals())
+    shell = code.InteractiveConsole(variables)
+    shell.interact()
+
+if __name__ == "__main__":
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
+
+    print("""
+
+i is an Installer instance, already initialized
+i.cache is the cache for it.
+_flatpak, _apt for packaging specific stuff
+
+help() works
+
+""")
+
+    i = installer.Installer()
+    i.init(ready_callback=interact)
+
+    ml = GLib.MainLoop.new(None, True)
+    ml.run()
