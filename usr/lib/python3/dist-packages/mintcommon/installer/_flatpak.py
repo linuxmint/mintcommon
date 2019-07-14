@@ -9,6 +9,7 @@ import os
 
 import gi
 gi.require_version('AppStream', '1.0')
+gi.require_version('Gtk', '3.0')
 from gi.repository import AppStream, GLib, GObject, Gtk, Gio
 
 try:
@@ -456,7 +457,12 @@ def _get_remote_related_refs(fp_sys, remote_name, ref):
 
     return return_refs
 
-def _get_theme_refs(fp_sys, remote_name, ref):
+def _get_theme_refs(fp_sys, remote_name, ref=None):
+    if ref:
+        arch = ref.get_arch()
+    else:
+        arch = Flatpak.get_default_arch()
+
     theme_refs = []
 
     gtksettings = Gtk.Settings.get_default()
@@ -493,7 +499,7 @@ def _get_theme_refs(fp_sys, remote_name, ref):
             matching_refs = sorted(matching_refs, key=sortref, reverse=True)
 
             for matching_ref in matching_refs:
-                if matching_ref.get_arch() != ref.get_arch():
+                if matching_ref.get_arch() != arch:
                     continue
 
                 theme_ref = matching_ref
@@ -525,7 +531,7 @@ def _get_theme_refs(fp_sys, remote_name, ref):
                     matching_refs = sorted(matching_refs, key=sortref, reverse=True)
 
                     for matching_ref in matching_refs:
-                        if matching_ref.get_arch() != ref.get_arch():
+                        if matching_ref.get_arch() != arch:
                             continue
 
                         theme_ref = matching_ref
@@ -544,6 +550,16 @@ def _get_theme_refs(fp_sys, remote_name, ref):
             theme_refs.append(theme_ref)
 
     return theme_refs
+
+def get_updated_theme_refs():
+    fp_sys = get_fp_sys()
+    theme_refs = []
+
+    for remote in fp_sys.list_remotes():
+        theme_refs += _get_theme_refs (fp_sys, remote.get_name())
+
+    return theme_refs
+
 
 def _get_installed_related_refs(fp_sys, remote, ref):
     return_refs = []
