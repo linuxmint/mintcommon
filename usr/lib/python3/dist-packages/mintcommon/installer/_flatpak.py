@@ -814,16 +814,17 @@ def _pkginfo_from_file_thread(cache, file, callback):
                     print("MintInstall: flatpak - using existing remote '%s' for flatpakref file install" % remote_name)
                 else: #If Flatpakref is not installed already
                     try:
-                        print("MintInstall: flatpak - adding remote '%s' for flatpakref file install" % remote_name)
+                        print("MintInstall: flatpak - trying to install new remote for flatpakref file")
                         ref = fp_sys.install_ref_file(gb, None)
                         remote_name = ref.get_remote_name()
+                        print("MintInstall: flatpak - added remote '%s'" % remote_name)
                     except GLib.Error as e:
-                        dialogs.show_flatpak_error(e.message)
-                        if e.code == Gio.DBusError.ACCESS_DENIED: # user cancelling auth prompt for adding a remote
-                            print("MintInstall: could not read .flatpakref file: %s" % e.message)
+                        if e.code != Gio.DBusError.ACCESS_DENIED: # user cancelling auth prompt for adding a remote
+                            print("MintInstall: could not add new remote to system: %s" % e.message)
                             dialogs.show_flatpak_error(e.message)
-        except GLib.Error:
-            print("MintInstall: flatpak package already installed, but an error occurred finding it")
+        except GLib.Error as e:
+            print("MintInstall: flatpak - could not parse flatpakref file: %s" % e.message)
+            dialogs.show_flatpak_error(e.message)
 
         if ref:
             try:
