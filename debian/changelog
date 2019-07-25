@@ -1,3 +1,16 @@
+mint-common (2.0.2) tina; urgency=medium
+
+  [ Corbin ]
+  * prevent flatpak from always installing remote repo & fix typo
+
+  [ Michael Webster ]
+  * _flatpak.py: Add a bit more logging to flatpakref handling, fix an indentation problem.
+  * _flatpak.py: Fix condition for ignoring user auth cancel when adding a remote, fix some warnings.
+  * Add a script to test installer, imports don't work properly anymore when executing installer.py on its own.
+  * _flatpak.py: Add function to return system-matching theme packages for the mintinstall-update-flatpak script.
+
+ -- Clement Lefebvre <root@linuxmint.com>  Thu, 25 Jul 2019 10:31:46 +0200
+
 mint-common (2.0.1) tina; urgency=medium
 
   * Remove version module
