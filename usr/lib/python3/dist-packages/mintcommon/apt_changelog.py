@@ -407,10 +407,10 @@ Proceed with the download?"
                     break
             if not match_found:
                 if pkg_release:
-                    print(f'E: Release "{pkg_release}" is unavailable for "{pkg.name}"',
+                    print('E: Release "%s" is unavailable for "%s"' % (pkg_release, pkg.name),
                           file=sys.stderr)
                 else:
-                    print(f'E: Version {pkg_version}" is unavailable for "{pkg.name}"',
+                    print('E: Version "%s" is unavailable for "%s"' % (pkg_version, pkg.name),
                           file=sys.stderr)
                 self.close(14)
         else:
