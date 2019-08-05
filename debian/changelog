@@ -1,3 +1,9 @@
+mint-common (2.0.3) tina; urgency=medium
+
+  * Remove python 3.6 code
+
+ -- Clement Lefebvre <root@linuxmint.com>  Mon, 05 Aug 2019 11:29:52 +0200
+
 mint-common (2.0.2) tina; urgency=medium
 
   [ Corbin ]
