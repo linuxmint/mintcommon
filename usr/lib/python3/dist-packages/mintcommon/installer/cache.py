@@ -272,7 +272,7 @@ class PkgCache(object):
             return None
         from . import _apt
         pkgcache = [x[4:] for x in self.get_subset_of_type("a")]
-        current_status = [f"apt:{pkg}" for pkg in _apt.get_apt_cache() if
+        current_status = ["apt:%s" % pkg for pkg in _apt.get_apt_cache() if
             (pkg.installed and
             not pkg.is_auto_installed and
             pkg.shortname not in initial_status and
