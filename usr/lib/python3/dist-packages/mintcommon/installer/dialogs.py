@@ -28,6 +28,10 @@ class ChangesConfirmDialog(AptConfirmDialog):
         """Show a message and the dependencies in the dialog."""
         self.treestore.clear()
 
+        if not self.task.parent_window:
+            self.set_skip_taskbar_hint(True)
+            self.set_keep_above(True)
+
         # Run parent method for apt
         if self.task.pkginfo.pkg_hash.startswith("a"):
             super(ChangesConfirmDialog, self)._show_changes()

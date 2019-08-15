@@ -24,6 +24,8 @@ class MintRemoveWindow:
         if process.returncode != 0:
             if not self.try_remove_flatpak(desktopFile):
                 warnDlg = Gtk.MessageDialog(None, 0, Gtk.MessageType.WARNING, Gtk.ButtonsType.YES_NO, _("This menu item is not associated to any package. Do you want to remove it from the menu anyway?"))
+                warnDlg.set_keep_above(True)
+
                 warnDlg.get_widget_for_response(Gtk.ResponseType.YES).grab_focus()
                 warnDlg.vbox.set_spacing(10)
                 response = warnDlg.run()
@@ -36,6 +38,8 @@ class MintRemoveWindow:
             sys.exit(0)
 
         warnDlg = Gtk.MessageDialog(None, 0, Gtk.MessageType.WARNING, Gtk.ButtonsType.OK_CANCEL, _("The following packages will be removed:"))
+        warnDlg.set_keep_above(True)
+
         warnDlg.get_widget_for_response(Gtk.ResponseType.OK).grab_focus()
         warnDlg.vbox.set_spacing(10)
 
