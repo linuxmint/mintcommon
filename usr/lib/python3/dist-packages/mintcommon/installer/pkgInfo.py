@@ -280,6 +280,8 @@ class FlatpakPkgInfo(PkgInfo):
 
                 if icon_to_use.get_kind() in (AppStream.IconKind.LOCAL, AppStream.IconKind.CACHED):
                     self.icon = icon_to_use.get_filename()
+                elif icon_to_use.get_kind() == AppStream.IconKind.REMOTE:
+                    self.icon = icon_to_use.get_url()
                 elif icon_to_use.get_kind() == AppStream.IconKind.STOCK:
                     self.icon = icon_to_use.get_name()
 
