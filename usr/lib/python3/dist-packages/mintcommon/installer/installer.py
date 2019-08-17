@@ -448,13 +448,13 @@ class Installer:
 
         return pkginfo.get_description(comp)
 
-    def get_icon(self, pkginfo):
+    def get_icon(self, pkginfo, size):
         """
         Returns the icon name (or path) to display for the package
         """
         comp = self._get_backend_component(pkginfo)
 
-        return pkginfo.get_icon(comp)
+        return pkginfo.get_icon(pkginfo, comp, size)
 
     def get_screenshots(self, pkginfo):
         """

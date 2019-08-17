@@ -1,8 +1,9 @@
 import sys
 if sys.version_info.major < 3:
     raise "python3 required"
+import os
 
-from gi.repository import AppStream
+from gi.repository import AppStream, Gtk
 
 def capitalize(string):
     if string and len(string) > 1:
@@ -131,8 +132,30 @@ class AptPkgInfo(PkgInfo):
 
         return self.description
 
-    def get_icon(self, apt_pkg=None):
-        return None # this is handled in mintinstall directly for now
+    def get_icon(self, pkginfo, apt_pkg=None, size=64):
+        if self.icon:
+            return self.icon
+
+        theme = Gtk.IconTheme.get_default()
+
+        for name in [pkginfo.name, pkginfo.name.split(":")[0], pkginfo.name.split("-")[0], pkginfo.name.split(".")[-1].lower()]:
+            if theme.has_icon(name):
+                self.icon = name
+                return self.icon
+
+        # Look in app-install-data and pixmaps
+        for extension in ['svg', 'png', 'xpm']:
+            icon_path = "/usr/share/app-install/icons/%s.%s" % (pkginfo.name, extension)
+            if os.path.exists(icon_path):
+                self.icon = icon_path
+                return self.icon
+
+            icon_path = "/usr/share/pixmaps/%s.%s" % (pkginfo.name, extension)
+            if os.path.exists(icon_path):
+                self.icon = icon_path
+                return self.icon
+
+        return None
 
     def get_screenshots(self, apt_pkg=None):
         return [] # handled in mintinstall for now
@@ -233,7 +256,7 @@ class FlatpakPkgInfo(PkgInfo):
 
         return self.description
 
-    def get_icon(self, as_component=None):
+    def get_icon(self, pkginfo, as_component=None, size=64):
         if self.icon:
             return self.icon
 
@@ -241,14 +264,29 @@ class FlatpakPkgInfo(PkgInfo):
             icons = as_component.get_icons()
 
             if icons:
-                if icons[0].get_kind() == AppStream.IconKind.LOCAL:
-                    self.icon = icons[0].get_filename()
-                elif icons[0].get_kind() == AppStream.IconKind.STOCK:
-                    self.icon = icons[0].get_name()
+                icon_to_use = None
+                first_icon = None
+
+                for icon in icons:
+                    if first_icon == None:
+                        first_icon = icon
+
+                    if icon.get_height() == size:
+                        icon_to_use = icon
+                        break
+
+                if icon_to_use == None:
+                    icon_to_use = first_icon
+
+                if icon_to_use.get_kind() in (AppStream.IconKind.LOCAL, AppStream.IconKind.CACHED):
+                    self.icon = icon_to_use.get_filename()
+                elif icon_to_use.get_kind() == AppStream.IconKind.STOCK:
+                    self.icon = icon_to_use.get_name()
 
         if self.icon == None:
-            self.icon = self.name
-
+            self.icon == ""
+            return None
+        print(self.icon)
         return self.icon
 
     def get_screenshots(self, as_component=None):
