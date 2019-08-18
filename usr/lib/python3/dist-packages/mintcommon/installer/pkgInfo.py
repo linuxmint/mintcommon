@@ -145,15 +145,16 @@ class AptPkgInfo(PkgInfo):
 
         # Look in app-install-data and pixmaps
         for extension in ['svg', 'png', 'xpm']:
-            icon_path = "/usr/share/app-install/icons/%s.%s" % (pkginfo.name, extension)
-            if os.path.exists(icon_path):
-                self.icon = icon_path
-                return self.icon
+            for suffix in ['', '-icon']:
+                icon_path = "/usr/share/app-install/icons/%s%s.%s" % (pkginfo.name, suffix, extension)
+                if os.path.exists(icon_path):
+                    self.icon = icon_path
+                    return self.icon
 
-            icon_path = "/usr/share/pixmaps/%s.%s" % (pkginfo.name, extension)
-            if os.path.exists(icon_path):
-                self.icon = icon_path
-                return self.icon
+                icon_path = "/usr/share/pixmaps/%s.%s" % (pkginfo.name, extension)
+                if os.path.exists(icon_path):
+                    self.icon = icon_path
+                    return self.icon
 
         return None
 
