@@ -140,6 +140,9 @@ def _process_remote(cache, fp_sys, remote, arch):
             if ref.get_arch() != arch:
                 continue
 
+            if ref.get_name().endswith("BaseApp"):
+                continue
+
             _add_package_to_cache(cache, ref, remote_url, False)
     except GLib.Error as e:
         print(e.message)
