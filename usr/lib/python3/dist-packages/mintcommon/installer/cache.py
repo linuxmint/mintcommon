@@ -110,7 +110,7 @@ class PkgCache(object):
             sys_mtime = os.path.getmtime(SYS_CACHE_PATH)
 
             if ((time.time() - MAX_AGE) > sys_mtime) or not os.access(SYS_CACHE_PATH, os.R_OK):
-                print("MintInstall: System pkgcache too old or not accessible, skipping")
+                print("Installer: System pkgcache too old or not accessible, skipping")
                 sys_mtime = 0
         except OSError:
             sys_mtime = 0
@@ -119,7 +119,7 @@ class PkgCache(object):
             user_mtime = os.path.getmtime(USER_CACHE_PATH)
 
             if (time.time() - MAX_AGE) > user_mtime:
-                print("MintInstall: User pkgcache too old, skipping")
+                print("Installer: User pkgcache too old, skipping")
                 user_mtime = 0
         except OSError:
             user_mtime = 0
@@ -133,10 +133,10 @@ class PkgCache(object):
         # Select the most recent
         if sys_mtime > user_mtime:
             most_recent = SYS_CACHE_PATH
-            print("MintInstall: System pkgcache is most recent, using it.")
+            print("Installer: System pkgcache is most recent, using it.")
         else:
             most_recent = USER_CACHE_PATH
-            print("MintInstall: User pkgcache is most recent, using it.")
+            print("Installer: User pkgcache is most recent, using it.")
 
         return Path(most_recent)
 
@@ -164,7 +164,7 @@ class PkgCache(object):
                 sections = pickle_obj.section_lists
                 flatpak_remote_infos = pickle_obj.flatpak_remote_infos
         except Exception as e:
-            print("MintInstall: Error loading pkginfo cache:", e)
+            print("Installer: Error loading pkginfo cache:", e)
             cache = None
 
         if cache == None:
@@ -203,10 +203,10 @@ class PkgCache(object):
             with path.open(mode='wb') as f:
                 pickle.dump(to_be_pickled, f)
         except Exception as e:
-            print("MintInstall: Could not save cache:", str(e))
+            print("Installer: Could not save cache:", str(e))
 
     def _new_cache_common(self):
-        print("MintInstall: Generating new pkgcache")
+        print("Installer: Generating new pkgcache")
         cache, sections, flatpak_remote_infos = self._generate_cache()
 
         if len(cache) > 0:

@@ -108,7 +108,7 @@ def process_full_apt_cache(cache):
 
         cache[pkg_hash] = AptPkgInfo(pkg_hash, pkg)
 
-    print('MintInstall: Processing APT packages for cache took %0.3f ms' % ((time.time() - apt_time) * 1000.0))
+    print('Installer: Processing APT packages for cache took %0.3f ms' % ((time.time() - apt_time) * 1000.0))
 
     return cache, sections
 
@@ -169,7 +169,7 @@ def _calculate_apt_changes(task):
     with _apt_cache_lock:
         apt_cache.clear()
 
-        print("MintInstall: Calculating changes required for APT package: %s" % task.pkginfo.name)
+        print("Installer: Calculating changes required for APT package: %s" % task.pkginfo.name)
 
         pkginfo = task.pkginfo
 
@@ -207,11 +207,11 @@ def _calculate_apt_changes(task):
 
         for pkg_name in task.to_remove:
             if _is_critical_package(apt_cache[pkg_name]):
-                print("MintInstall: apt - cannot remove critical package: %s" % pkg_name)
+                print("Installer: apt - cannot remove critical package: %s" % pkg_name)
                 task.info_ready_status = task.STATUS_FORBIDDEN
 
         if aptpkg.name in BROKEN_PACKAGES:
-            print("MintInstall: apt- cannot execute task, package is broken: %s" % aptpkg.name)
+            print("Installer: apt- cannot execute task, package is broken: %s" % aptpkg.name)
             task.info_ready_status = task.STATUS_BROKEN
 
         print("For install:", task.to_install)

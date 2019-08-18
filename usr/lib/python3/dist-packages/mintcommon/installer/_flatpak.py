@@ -85,7 +85,7 @@ def _get_file_timestamp(gfile):
         return info.get_attribute_uint64("time::modified")
     except GLib.Error as e:
         if e.code != Gio.IOErrorEnum.NOT_FOUND:
-            print("MintInstall: flatpak - could not get time::modified from file %s" % gfile.get_path())
+            print("Installer: flatpak - could not get time::modified from file %s" % gfile.get_path())
         return 0
 
 def _should_update_appstream_data(fp_sys, remote, arch):
@@ -95,14 +95,14 @@ def _should_update_appstream_data(fp_sys, remote, arch):
 
     try:
         if fp_sys.update_remote_sync(remote.get_name(), None):
-            print("MintInstall: flatpak - metadata for remote '%s' has been updated. Comparing appstream timestamps..." % remote.get_name())
+            print("Installer: flatpak - metadata for remote '%s' has been updated. Comparing appstream timestamps..." % remote.get_name())
 
             new_timestamp = _get_file_timestamp(remote.get_appstream_timestamp(arch))
 
             if (new_timestamp > current_timestamp) or (current_timestamp == 0):
                 ret = True
     except GLib.Error as e:
-        print("MintInstall: flatpak - could not update metadata for remote '%s': %s" % (remote.get_name(), e.message))
+        print("Installer: flatpak - could not update metadata for remote '%s': %s" % (remote.get_name(), e.message))
 
     return ret
 
@@ -110,13 +110,13 @@ def _process_remote(cache, fp_sys, remote, arch):
     remote_name = remote.get_name()
 
     if remote.get_disabled():
-        print("MintInstall: flatpak - remote '%s' is disabled, skipping" % remote_name)
+        print("Installer: flatpak - remote '%s' is disabled, skipping" % remote_name)
         return
 
     remote_url = remote.get_url()
 
     if _should_update_appstream_data(fp_sys, remote, arch):
-        print("MintInstall: flatpak - new appstream data available for remote '%s', fetching..." % remote_name)
+        print("Installer: flatpak - new appstream data available for remote '%s', fetching..." % remote_name)
 
         try:
             fp_sys.update_appstream_sync(remote_name, arch, None)
@@ -124,12 +124,12 @@ def _process_remote(cache, fp_sys, remote, arch):
             # Not fatal..
             pass
     else:
-        print("MintInstall: flatpak - no new appstream data for remote '%s', skipping download" % remote_name)
+        print("Installer: flatpak - no new appstream data for remote '%s', skipping download" % remote_name)
 
     # get_noenumerate indicates whether a remote should be used to list applications.
     # Instead, they're intended for single downloads (via .flatpakref files)
     if remote.get_noenumerate():
-        print("MintInstall: flatpak - remote '%s' is marked as no-enumerate skipping package listing" % remote_name)
+        print("Installer: flatpak - remote '%s' is marked as no-enumerate skipping package listing" % remote_name)
         return
 
     try:
@@ -192,10 +192,10 @@ def process_full_flatpak_installation(cache):
             flatpak_remote_infos[remote_name] = FlatpakRemoteInfo(remote)
 
     except GLib.Error as e:
-        print("MintInstall: flatpak - could not get remote list", e.message)
+        print("Installer: flatpak - could not get remote list", e.message)
         cache = {}
 
-    print('MintInstall: Processing Flatpaks for cache took %0.3f ms' % ((time.time() - fp_time) * 1000.0))
+    print('Installer: Processing Flatpaks for cache took %0.3f ms' % ((time.time() - fp_time) * 1000.0))
 
     return cache, flatpak_remote_infos
 
@@ -223,7 +223,7 @@ def _initialize_appstream_thread():
             for remote in fp_sys.list_remotes():
                 _load_appstream_pool(_as_pools, remote)
         except GLib.Error:
-            print("MintInstall: Could not initialize appstream components for flatpaks")
+            print("Installer: Could not initialize appstream components for flatpaks")
 
 def search_for_pkginfo_as_component(pkginfo):
     name = pkginfo.name
@@ -617,7 +617,7 @@ def select_packages(task):
     else:
         method = _pick_refs_for_removal
 
-    print("MintInstall: Calculating changes required for Flatpak package: %s" % task.pkginfo.name)
+    print("Installer: Calculating changes required for Flatpak package: %s" % task.pkginfo.name)
 
     thread = threading.Thread(target=method, args=(task,))
     thread.start()
@@ -723,7 +723,7 @@ def list_updated_pkginfos(cache):
     try:
         updates = fp_sys.list_installed_refs_for_update(None)
     except GLib.Error as e:
-        print("MintInstall: flatpak - could not get updated flatpak refs")
+        print("Installer: flatpak - could not get updated flatpak refs")
         return []
 
     for ref in updates:
@@ -759,7 +759,7 @@ def generate_uncached_pkginfos(cache):
                     _add_package_to_cache(cache, ref, remote.get_url(), True)
 
     except GLib.Error as e:
-        print("MintInstall: flatpak - could not check for uncached pkginfos", e.message)
+        print("Installer: flatpak - could not check for uncached pkginfos", e.message)
 
 def pkginfo_is_installed(pkginfo):
     fp_sys = get_fp_sys()
@@ -788,7 +788,7 @@ def list_remotes():
             remotes.append(FlatpakRemoteInfo(remote))
 
     except GLib.Error as e:
-        print("MintInstall: flatpak - could not fetch remote list", e.message)
+        print("Installer: flatpak - could not fetch remote list", e.message)
         remotes = []
 
     return remotes
@@ -803,7 +803,7 @@ def _pkginfo_from_file_thread(cache, file, callback):
     path = file.get_path()
 
     if path == None:
-        print("MintInstall: flatpak - no valid .flatpakref path provided")
+        print("Installer: flatpak - no valid .flatpakref path provided")
         return None
 
     ref = None
@@ -830,19 +830,19 @@ def _pkginfo_from_file_thread(cache, file, callback):
                                             arch=basic_ref.get_arch(),
                                             branch=basic_ref.get_branch(),
                                             name=basic_ref.get_name())
-                    print("MintInstall: flatpak - using existing remote '%s' for flatpakref file install" % remote_name)
+                    print("Installer: flatpak - using existing remote '%s' for flatpakref file install" % remote_name)
                 else: #If Flatpakref is not installed already
                     try:
-                        print("MintInstall: flatpak - trying to install new remote for flatpakref file")
+                        print("Installer: flatpak - trying to install new remote for flatpakref file")
                         ref = fp_sys.install_ref_file(gb, None)
                         remote_name = ref.get_remote_name()
-                        print("MintInstall: flatpak - added remote '%s'" % remote_name)
+                        print("Installer: flatpak - added remote '%s'" % remote_name)
                     except GLib.Error as e:
                         if e.code != Gio.DBusError.ACCESS_DENIED: # user cancelling auth prompt for adding a remote
-                            print("MintInstall: could not add new remote to system: %s" % e.message)
+                            print("Installer: could not add new remote to system: %s" % e.message)
                             dialogs.show_flatpak_error(e.message)
         except GLib.Error as e:
-            print("MintInstall: flatpak - could not parse flatpakref file: %s" % e.message)
+            print("Installer: flatpak - could not parse flatpakref file: %s" % e.message)
             dialogs.show_flatpak_error(e.message)
 
         if ref:
@@ -895,12 +895,12 @@ def _pkginfo_from_file_thread(cache, file, callback):
                             for remote in fp_sys.list_remotes(None):
                                 # See comments below in _remote_from_repo_file_thread about get_noenumerate() use.
                                 if remote.get_url() == runtime_repo_url and not remote.get_noenumerate():
-                                    print("MintInstall: flatpak - runtime remote '%s' already in system, skipping" % runtime_remote_name)
+                                    print("Installer: flatpak - runtime remote '%s' already in system, skipping" % runtime_remote_name)
                                     existing = True
                                     break
 
                             if not existing:
-                                print("MintInstall: Adding additional runtime remote named '%s' at '%s'" % (runtime_remote_name, runtime_repo_url))
+                                print("Installer: Adding additional runtime remote named '%s' at '%s'" % (runtime_remote_name, runtime_repo_url))
 
                                 cmd_v = ['flatpak',
                                          'remote-add',
@@ -914,7 +914,7 @@ def _pkginfo_from_file_thread(cache, file, callback):
                                 fp_sys.drop_caches(None)
                         os.unlink(file.name)
             except GLib.Error as e:
-                print("MintInstall: could not process .flatpakref file: %s" % e.message)
+                print("Installer: could not process .flatpakref file: %s" % e.message)
                 dialogs.show_flatpak_error(e.message)
 
     GLib.idle_add(callback, pkginfo, priority=GLib.PRIORITY_DEFAULT)
@@ -927,7 +927,7 @@ def _remote_from_repo_file_thread(cache, file, callback):
     try:
         path = Path(file.get_path())
     except TypeError:
-        print("MintInstall: flatpak - no valid .flatpakrepo path provided")
+        print("Installer: flatpak - no valid .flatpakrepo path provided")
         return
 
     fp_sys = get_fp_sys()

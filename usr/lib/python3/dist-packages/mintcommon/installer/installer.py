@@ -186,7 +186,7 @@ class Installer:
             GObject.idle_add(self._idle_cache_load_done)
         else:
             if self.remotes_changed:
-                print("MintInstall: Flatpak remotes have changed, forcing a new cache.")
+                print("Installer: Flatpak remotes have changed, forcing a new cache.")
 
             self.cache.force_new_cache_async(self._idle_cache_load_done)
 

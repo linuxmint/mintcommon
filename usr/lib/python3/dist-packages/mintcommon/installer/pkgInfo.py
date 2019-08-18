@@ -289,7 +289,7 @@ class FlatpakPkgInfo(PkgInfo):
         if self.icon == None:
             self.icon == ""
             return None
-        print(self.icon)
+
         return self.icon
 
     def get_screenshots(self, as_component=None):
