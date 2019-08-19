@@ -1,3 +1,16 @@
+mint-common (2.0.5) tina; urgency=medium
+
+  [ Michael Webster ]
+  * dialogs: Set keep-above and skip-taskbar on confirm dialogs when there is no parent window (such as when removing apps from the menu).
+  * Use appstream api to choose flatpak icons.
+  * pkgInfo.py: allow appstream 'remote' icons
+  * pkgInfo.py: Match apt packages against icons ending in -icon from the app-install folder.
+  * _flatpak.py: Ignore BaseApp packages.
+  * installer: Remove logging line, replace MintInstall logging  references to simply "Installer"
+  * _flatpak.py: If no apps are installed, don't try to install theme packages during an update (via mintinstall-update-flatpak).
+
+ -- Clement Lefebvre <root@linuxmint.com>  Mon, 19 Aug 2019 18:15:20 +0200
+
 mint-common (2.0.4) tina; urgency=medium
 
   * Remove Python 3.6 code
