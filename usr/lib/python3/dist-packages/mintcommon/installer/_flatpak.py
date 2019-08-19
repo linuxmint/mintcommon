@@ -556,6 +556,10 @@ def _get_theme_refs(fp_sys, remote_name, ref=None):
 
 def get_updated_theme_refs():
     fp_sys = get_fp_sys()
+
+    if not fp_sys.list_installed_refs_by_kind(Flatpak.RefKind.APP, None):
+        return []
+
     theme_refs = []
 
     for remote in fp_sys.list_remotes():
