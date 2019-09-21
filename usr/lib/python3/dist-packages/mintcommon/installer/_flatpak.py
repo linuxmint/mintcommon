@@ -1031,12 +1031,12 @@ class MetaTransaction():
         self.item_count = len(task.to_install + task.to_remove + task.to_update)
         self.current_count = 0
 
-        try:
-            for ref in task.to_install:
-                task.progress_state = task.PROGRESS_STATE_INSTALLING
-                task.current_package_name = ref.get_name()
+        for ref in task.to_install:
+            task.progress_state = task.PROGRESS_STATE_INSTALLING
+            task.current_package_name = ref.get_name()
 
-                print("installing: %s" % ref.format_ref())
+            print("installing: %s" % ref.format_ref())
+            try:
                 self.fp_sys.install(ref.get_remote_name(),
                                     ref.get_kind(),
                                     ref.get_name(),
@@ -1045,14 +1045,24 @@ class MetaTransaction():
                                     self.on_flatpak_progress,
                                     None,
                                     task.cancellable)
+            except GLib.Error as e:
+                if task.current_package_name == task.pkginfo.name:
+                    if e.code != Gio.IOErrorEnum.CANCELLED:
+                        task.progress_state = task.PROGRESS_STATE_FAILED
+                        task.current_package_name = None
+                        self.on_flatpak_error(e.message)
+                        return
+                else:
+                    print("Installer: flatpak - problem installing %s: %s" % (task.current_package_name, e.message))
 
-                self.current_count += 1
+            self.current_count += 1
 
-            for ref in task.to_remove:
-                task.progress_state = task.PROGRESS_STATE_REMOVING
-                task.current_package_name = ref.get_name()
+        for ref in task.to_remove:
+            task.progress_state = task.PROGRESS_STATE_REMOVING
+            task.current_package_name = ref.get_name()
 
-                print("removing: %s" % ref.format_ref())
+            print("removing: %s" % ref.format_ref())
+            try:
                 self.fp_sys.uninstall(ref.get_kind(),
                                       ref.get_name(),
                                       ref.get_arch(),
@@ -1060,14 +1070,24 @@ class MetaTransaction():
                                       self.on_flatpak_progress,
                                       None,
                                       task.cancellable)
+            except GLib.Error as e:
+                if task.current_package_name == task.pkginfo.name:
+                    if e.code != Gio.IOErrorEnum.CANCELLED:
+                        task.progress_state = task.PROGRESS_STATE_FAILED
+                        task.current_package_name = None
+                        self.on_flatpak_error(e.message)
+                        return
+                else:
+                    print("Installer: flatpak - problem removing %s: %s" % (task.current_package_name, e.message))
 
-                self.current_count += 1
+            self.current_count += 1
 
-            for ref in task.to_update:
-                task.progress_state = task.PROGRESS_STATE_UPDATING
-                task.current_package_name = ref.get_name()
+        for ref in task.to_update:
+            task.progress_state = task.PROGRESS_STATE_UPDATING
+            task.current_package_name = ref.get_name()
 
-                print("updating: %s" % ref.format_ref())
+            print("updating: %s" % ref.format_ref())
+            try:
                 self.fp_sys.update(Flatpak.UpdateFlags.NONE,
                                    ref.get_remote_name(),
                                    ref.get_kind(),
@@ -1077,14 +1097,11 @@ class MetaTransaction():
                                    self.on_flatpak_progress,
                                    None,
                                    task.cancellable)
+            except GLib.Error as e:
+                # update will None as a task's pkginfo, just warn.
+                print("Installer: flatpak - problem updating %s: %s" % (task.current_package_name, e.message))
 
-                self.current_count += 1
-        except GLib.Error as e:
-            if e.code != Gio.IOErrorEnum.CANCELLED:
-                task.progress_state = task.PROGRESS_STATE_FAILED
-                task.current_package_name = None
-                self.on_flatpak_error(e.message)
-                return
+            self.current_count += 1
 
         task.progress_state = task.PROGRESS_STATE_FINISHED
         task.current_package_name = None
