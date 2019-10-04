@@ -24,15 +24,37 @@ from .dialogs import ChangesConfirmDialog, FlatpakProgressWindow
 from .misc import debug
 
 class FlatpakRemoteInfo():
-    def __init__(self, remote):
-        self.name = remote.get_name()
-        self.title = remote.get_title()
-        self.url = remote.get_url()
-        self.disabled = remote.get_disabled()
-        self.noenumerate = remote.get_noenumerate()
+    def __init__(self, remote=None):
+        if remote:
+            self.name = remote.get_name()
+            self.title = remote.get_title()
+            self.url = remote.get_url()
+            self.disabled = remote.get_disabled()
+            self.noenumerate = remote.get_noenumerate()
 
-        if not self.title or self.title == "":
-            self.title = self.name.capitalize()
+            if not self.title or self.title == "":
+                self.title = self.name.capitalize()
+        else:
+            self.name = None
+            self.title = None
+            self.url = None
+            self.disabled = False
+            self.noenumerate = False
+
+    @classmethod
+    def from_json(cls, json_data:dict):
+        inst = cls()
+
+        inst.name = json_data["name"]
+        inst.title = json_data["title"]
+        inst.url = json_data["url"]
+        inst.disabled = json_data["disabled"]
+        inst.noenumerate = json_data["noenumerate"]
+
+        return inst
+
+    def to_json(self):
+        return self.__dict__
 
 _fp_sys = None
 
