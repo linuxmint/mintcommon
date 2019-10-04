@@ -1,3 +1,10 @@
+mint-common (2.0.7) tina; urgency=medium
+
+  [ Michael Webster ]
+  * installer: Use json instead of pickle for the package cache. (#37)
+
+ -- Clement Lefebvre <root@linuxmint.com>  Fri, 04 Oct 2019 10:03:11 +0100
+
 mint-common (2.0.6) tina; urgency=medium
 
   [ Michael Webster ]
