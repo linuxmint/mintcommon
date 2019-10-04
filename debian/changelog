@@ -1,3 +1,11 @@
+mint-common (2.0.6) tina; urgency=medium
+
+  [ Michael Webster ]
+  * debian/control: remove python dependency
+  * _flatpak.py: Don't fail an entire job if one package fails to install (#36)
+
+ -- Clement Lefebvre <root@linuxmint.com>  Mon, 23 Sep 2019 10:31:32 +0100
+
 mint-common (2.0.5) tina; urgency=medium
 
   [ Michael Webster ]
