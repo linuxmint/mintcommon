@@ -1,7 +1,7 @@
 import time
 import os
 from pathlib import Path
-import pickle
+import json
 import threading
 
 import gi
@@ -10,24 +10,48 @@ from gi.repository import GLib, GObject
 
 from . import _apt
 from . import _flatpak
-from .pkgInfo import PkgInfo
+from ._flatpak import FlatpakRemoteInfo
+from .pkgInfo import FlatpakPkgInfo, AptPkgInfo
 from .misc import print_timing
 
-SYS_CACHE_PATH = "/var/cache/mintinstall/pkginfo.cache"
-USER_CACHE_PATH = os.path.join(GLib.get_user_cache_dir(), "mintinstall", "pkginfo.cache")
+SYS_CACHE_PATH = "/var/cache/mintinstall/pkginfo.json"
+USER_CACHE_PATH = os.path.join(GLib.get_user_cache_dir(), "mintinstall", "pkginfo.json")
 
 MAX_AGE = 7 * (60 * 60 * 24) # days
 
 class CacheLoadingException(Exception):
     '''Thrown when there was an issue loading the pickled package set'''
 
-class PickleObject(object):
+class JsonObject(object):
     def __init__(self, pkginfo_cache, section_lists, flatpak_remote_infos):
-        super(PickleObject, self).__init__()
+        super(JsonObject, self).__init__()
 
         self.pkginfo_cache = pkginfo_cache
         self.section_lists = section_lists
         self.flatpak_remote_infos = flatpak_remote_infos
+
+    @classmethod
+    def from_json(cls, json_data: dict):
+        pkgcache_dict = {}
+        for key in json_data["pkginfo_cache"].keys():
+            pkginfo_data = json_data["pkginfo_cache"][key]
+
+            if pkginfo_data["pkg_hash"].startswith("a"):
+                pkgcache_dict[key] = AptPkgInfo.from_json(pkginfo_data)
+            else:
+                pkgcache_dict[key] = FlatpakPkgInfo.from_json(pkginfo_data)
+
+        remotes_dict = {}
+        for key in json_data["flatpak_remote_infos"].keys():
+            remote_data = json_data["flatpak_remote_infos"][key]
+            remotes_dict[key] = FlatpakRemoteInfo.from_json(remote_data)
+
+        return cls(pkgcache_dict,
+                   json_data["section_lists"],
+                   remotes_dict)
+
+    def to_json(self):
+        return self.__dict__
 
 class PkgCache(object):
     STATUS_EMPTY = 0
@@ -156,13 +180,12 @@ class PkgCache(object):
 
         if path is None:
             raise CacheLoadingException
-
         try:
-            with path.open(mode='rb') as f:
-                pickle_obj = pickle.load(f)
-                cache = pickle_obj.pkginfo_cache
-                sections = pickle_obj.section_lists
-                flatpak_remote_infos = pickle_obj.flatpak_remote_infos
+            with path.open(mode='r', encoding="utf8") as f:
+                json_obj = JsonObject.from_json(json.load(f))
+                cache = json_obj.pkginfo_cache
+                sections = json_obj.section_lists
+                flatpak_remote_infos = json_obj.flatpak_remote_infos
         except Exception as e:
             print("Installer: Error loading pkginfo cache:", e)
             cache = None
@@ -191,17 +214,16 @@ class PkgCache(object):
 
         return best_path
 
-    def _save_cache(self, to_be_pickled):
+    def _save_cache(self, to_be_json):
         path = self._get_best_save_path()
 
-        # Depickling later may fail if we _load_cache from a different context or module.
-        # This explicitly stores the module name PkgInfo is defined in, within the pickle
-        # file.
-        PkgInfo.__module__ = "installer.pkgInfo"
+        FlatpakPkgInfo.__module__ = "installer.pkgInfo"
+        AptPkgInfo.__module__ = "installer.pkgInfo"
+        FlatpakRemoteInfo.__module__ = "installer._flatpak"
 
         try:
-            with path.open(mode='wb') as f:
-                pickle.dump(to_be_pickled, f)
+            with path.open(mode='w', encoding="utf8") as f:
+                json.dump(to_be_json, f, default=lambda o: o.to_json(), indent=4)
         except Exception as e:
             print("Installer: Could not save cache:", str(e))
 
@@ -210,7 +232,7 @@ class PkgCache(object):
         cache, sections, flatpak_remote_infos = self._generate_cache()
 
         if len(cache) > 0:
-            self._save_cache(PickleObject(cache, sections, flatpak_remote_infos))
+            self._save_cache(JsonObject(cache, sections, flatpak_remote_infos))
 
         with self._item_lock:
             self._items = cache

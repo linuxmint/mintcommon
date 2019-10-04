@@ -12,13 +12,12 @@ def capitalize(string):
         return (string)
 
 class PkgInfo:
-    __slots__ = "pkg_hash", "name", "display_name", "summary", "description",    \
-                "icon", "screenshots", "url", "version", "categories", "refid",  \
-                "remote", "remote_url", "kind", "arch", "branch", "commit"
-
-    def __init__(self, pkg_hash):
+    def __init__(self, pkg_hash=None):
         # Saved stuff
-        self.pkg_hash = pkg_hash
+        self.pkg_hash = None
+        if pkg_hash:
+            self.pkg_hash = pkg_hash
+
         self.name = None
         # some flatpak-specific things
         self.refid=""
@@ -41,38 +40,29 @@ class PkgInfo:
         # Runtime categories
         self.categories = []
 
-    def __getstate__(self):
-        return (                                 \
-        self.pkg_hash,       self.name,          \
-        self.remote,         self.remote_url,    \
-        self.kind,           self.arch,          \
-        self.branch,         self.commit,        \
-        self.refid                               \
-        )
-
-    def __setstate__(self, state):
-        self.pkg_hash,       self.name,          \
-        self.remote,         self.remote_url,    \
-        self.kind,           self.arch,          \
-        self.branch,         self.commit,        \
-        self.refid                               = state
-
-        self.categories = []
-        self.clear_cached_info()
-
-    def clear_cached_info(self):
-        self.display_name = None
-        self.summary = None
-        self.description = None
-        self.icon = None
-        self.screenshots = []
-        self.version = None
-        self.url = None
-
 class AptPkgInfo(PkgInfo):
-    def __init__(self, pkg_hash, apt_pkg):
+    def __init__(self, pkg_hash=None, apt_pkg=None):
         super(AptPkgInfo, self).__init__(pkg_hash)
-        self.name = apt_pkg.name
+
+        if apt_pkg:
+            self.name = apt_pkg.name
+
+    @classmethod
+    def from_json(cls, json_data:dict):
+        inst = cls()
+        inst.pkg_hash = json_data["pkg_hash"]
+        inst.name = json_data["name"]
+
+        return inst
+
+    def to_json(self):
+        trimmed_dict = {}
+
+        for key in ("pkg_hash",
+                    "name"):
+            trimmed_dict[key] = self.__dict__[key]
+
+        return trimmed_dict
 
     def get_display_name(self, apt_pkg=None):
         # fastest
@@ -193,8 +183,11 @@ class AptPkgInfo(PkgInfo):
 
 
 class FlatpakPkgInfo(PkgInfo):
-    def __init__(self, pkg_hash, remote, ref, remote_url, installed):
+    def __init__(self, pkg_hash=None, remote=None, ref=None, remote_url=None, installed=False):
         super(FlatpakPkgInfo, self).__init__(pkg_hash)
+
+        if not pkg_hash:
+            return
 
         self.name = ref.get_name() # org.foo.Bar
         self.remote = remote # "flathub"
@@ -205,6 +198,37 @@ class FlatpakPkgInfo(PkgInfo):
         self.arch = ref.get_arch()
         self.branch = ref.get_branch()
         self.commit = ref.get_commit()
+
+    @classmethod
+    def from_json(cls, json_data:dict):
+        inst = cls()
+        inst.pkg_hash = json_data["pkg_hash"]
+        inst.name = json_data["name"]
+        inst.refid = json_data["refid"]
+        inst.remote = json_data["remote"]
+        inst.kind = json_data["kind"]
+        inst.arch = json_data["arch"]
+        inst.branch = json_data["branch"]
+        inst.commit = json_data["commit"]
+        inst.remote_url = json_data["remote_url"]
+
+        return inst
+
+    def to_json(self):
+        trimmed_dict = {}
+
+        for key in ("pkg_hash",
+                    "name",
+                    "refid",
+                    "remote",
+                    "kind",
+                    "arch",
+                    "branch",
+                    "commit",
+                    "remote_url"):
+            trimmed_dict[key] = self.__dict__[key]
+
+        return trimmed_dict
 
     def get_display_name(self, as_component=None):
         # fastest
