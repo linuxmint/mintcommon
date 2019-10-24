@@ -846,16 +846,23 @@ def _pkginfo_from_file_thread(cache, file, callback):
             kf = GLib.KeyFile()
             if kf.load_from_file(path, GLib.KeyFileFlags.NONE):
                 name = kf.get_string("Flatpak Ref", "Name")
-                branch = kf.get_string("Flatpak Ref", "Branch")
                 url = kf.get_string("Flatpak Ref", "Url")
+
+                try:
+                    branch = kf.get_string("Flatpak Ref", "Branch")
+                except GLib.Error as e:
+                    if e.code == GLib.KeyFileError.KEY_NOT_FOUND:
+                        print("Installer: flatpak - flatpakref file doesn't have a Branch key, maybe nightly or testing.")
+                        branch = None
+
                 remote_name = _get_remote_name_by_url(fp_sys, url)
-                if name and branch and remote_name:
-                    basic_ref = Flatpak.Ref.parse("app/%s/%s/%s" % (name, Flatpak.get_default_arch(), branch))
+
+                if name and remote_name:
                     ref = Flatpak.RemoteRef(remote_name=remote_name,
-                                            kind=basic_ref.get_kind(),
-                                            arch=basic_ref.get_arch(),
-                                            branch=basic_ref.get_branch(),
-                                            name=basic_ref.get_name())
+                                            kind=Flatpak.RefKind.APP,
+                                            arch=Flatpak.get_default_arch(),
+                                            branch=branch,
+                                            name=name)
                     print("Installer: flatpak - using existing remote '%s' for flatpakref file install" % remote_name)
                 else: #If Flatpakref is not installed already
                     try:
