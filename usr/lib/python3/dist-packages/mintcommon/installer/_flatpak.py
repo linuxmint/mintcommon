@@ -868,6 +868,8 @@ def _pkginfo_from_file_thread(cache, file, callback):
                     try:
                         print("Installer: flatpak - trying to install new remote for flatpakref file")
                         ref = fp_sys.install_ref_file(gb, None)
+                        fp_sys.drop_caches(None)
+
                         remote_name = ref.get_remote_name()
                         print("Installer: flatpak - added remote '%s'" % remote_name)
                     except GLib.Error as e:

@@ -229,9 +229,6 @@ class Installer:
         fp_remotes = self.list_flatpak_remotes()
 
         for remote_info in fp_remotes:
-            if remote_info.noenumerate:
-                continue
-
             real_remote_count += 1
 
             item = "%s::%s::%s" % (remote_info.name, remote_info.url, str(remote_info.disabled))
@@ -253,9 +250,6 @@ class Installer:
         fp_remotes = self.list_flatpak_remotes()
 
         for remote_info in fp_remotes:
-            if remote_info.noenumerate:
-                continue
-
             item = "%s::%s::%s" % (remote_info.name, remote_info.url, str(remote_info.disabled))
 
             new_remotes.append(item)
