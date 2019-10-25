@@ -1,3 +1,11 @@
+mint-common (2.0.8) tina; urgency=medium
+
+  [ Michael Webster ]
+  * _flatpak.py: Create a remote ref directly when installing from a flatpakref file, rather than parsing out a basic ref first.  This handles missing (and possibly unnecessary) info from the ref file.
+  * installer.py: Don't skip no-enumerate remotes when checking for differences between the installer's remote list and the FlatpakInstallation's.
+
+ -- Clement Lefebvre <root@linuxmint.com>  Fri, 25 Oct 2019 10:14:11 +0100
+
 mint-common (2.0.7) tina; urgency=medium
 
   [ Michael Webster ]
