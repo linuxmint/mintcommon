@@ -24,7 +24,8 @@ def generate(domain, path, filename, prefix, name, comment, suffix, genericName=
 
     desktopFile.writelines("Name=%s\n" % name)
     for directory in sorted(os.listdir(path)):
-        if os.path.isdir(os.path.join(path, directory)):
+        mo_file = os.path.join(path, directory, "LC_MESSAGES", "%s.mo" % domain)
+        if os.path.exists(mo_file):
             try:
                 language = gettext.translation(domain, path, languages=[directory])
                 language.install()
@@ -36,7 +37,8 @@ def generate(domain, path, filename, prefix, name, comment, suffix, genericName=
     if comment is not None:
         desktopFile.writelines("Comment=%s\n" % comment)
         for directory in sorted(os.listdir(path)):
-            if os.path.isdir(os.path.join(path, directory)):
+            mo_file = os.path.join(path, directory, "LC_MESSAGES", "%s.mo" % domain)
+            if os.path.exists(mo_file):
                 try:
                     language = gettext.translation(domain, path, languages=[directory])
                     language.install()
@@ -49,7 +51,8 @@ def generate(domain, path, filename, prefix, name, comment, suffix, genericName=
         formatted = strip_split_and_recombine(keywords)
         desktopFile.writelines("Keywords=%s\n" % formatted)
         for directory in sorted(os.listdir(path)):
-            if os.path.isdir(os.path.join(path, directory)):
+            mo_file = os.path.join(path, directory, "LC_MESSAGES", "%s.mo" % domain)
+            if os.path.exists(mo_file):
                 try:
                     language = gettext.translation(domain, path, languages=[directory])
                     language.install()
@@ -62,7 +65,8 @@ def generate(domain, path, filename, prefix, name, comment, suffix, genericName=
     if genericName is not None:
         desktopFile.writelines("GenericName=%s\n" % genericName)
         for directory in sorted(os.listdir(path)):
-            if os.path.isdir(os.path.join(path, directory)):
+            mo_file = os.path.join(path, directory, "LC_MESSAGES", "%s.mo" % domain)
+            if os.path.exists(mo_file):
                 try:
                     language = gettext.translation(domain, path, languages=[directory])
                     language.install()
@@ -87,7 +91,8 @@ def generate_polkit_policy(domain, path, filename, prefix, message, suffix, appe
 
     desktopFile.writelines("<message>%s</message>\n" % message)
     for directory in sorted(os.listdir(path)):
-        if os.path.isdir(os.path.join(path, directory)):
+        mo_file = os.path.join(path, directory, "LC_MESSAGES", "%s.mo" % domain)
+        if os.path.exists(mo_file):
             try:
                 language = gettext.translation(domain, path, languages=[directory])
                 language.install()
