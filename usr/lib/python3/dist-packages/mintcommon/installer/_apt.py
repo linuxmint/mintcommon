@@ -92,8 +92,8 @@ def process_full_apt_cache(cache):
 
         pkg_hash = make_pkg_hash(pkg)
 
-        if pkg.section:
-            section_string = pkg.section
+        if pkg.candidate:
+            section_string = pkg.candidate.section
 
             if "/" in section_string:
                 section = section_string.split("/")[1]
