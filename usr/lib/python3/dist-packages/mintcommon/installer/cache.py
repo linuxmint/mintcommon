@@ -288,7 +288,12 @@ class PkgCache(object):
         if not os.path.isfile(installer_log):
             return None
         import gzip
-        installer_log = gzip.open(installer_log, "r").read().decode('utf-8').splitlines()
+        try:
+            installer_log = gzip.open(installer_log, "r").read().decode('utf-8').splitlines()
+        except Exception as e:
+            # There are a number of different exceptions here, but there's only one response
+            print("Could not get initial installed packages list (check /var/log/installer/initial-status.gz): %s" % str(e))
+            return None
         initial_status = [x[9:] for x in installer_log if x.startswith("Package: ")]
         if not initial_status:
             return None
