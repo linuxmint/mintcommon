@@ -22,6 +22,7 @@ class ChangesConfirmDialog(AptConfirmDialog):
     def __init__(self, transaction, task):
         super(ChangesConfirmDialog, self).__init__(transaction, cache=None, parent=task.parent_window)
 
+        self.set_size_request(500, 350)
         self.task = task
 
     def _show_changes(self):
