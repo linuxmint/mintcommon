@@ -258,7 +258,7 @@ class MetaTransaction():
     def _confirm_changes(self):
         try:
             if [pkgs for pkgs in self.apt_transaction.dependencies if pkgs]:
-                dia = ChangesConfirmDialog(self.apt_transaction, self.task)
+                dia = ChangesConfirmDialog(self.apt_transaction, self.task, parent=self.task.parent_window)
                 res = dia.run()
                 dia.hide()
                 if res != Gtk.ResponseType.OK:

@@ -1028,7 +1028,7 @@ def _get_repofile_repo_url(path):
 
 def execute_transaction(task):
     if len(task.to_install + task.to_remove + task.to_update) > 1:
-        dia = ChangesConfirmDialog(None, task)
+        dia = ChangesConfirmDialog(None, task, parent=task.parent_window)
         res = dia.run()
         dia.hide()
         if res != Gtk.ResponseType.OK:

@@ -9,7 +9,8 @@ from gi.repository import Gtk, XApp
 import aptdaemon.client
 import aptdaemon.enums
 import aptdaemon.errors
-from aptdaemon.gtk3widgets import AptErrorDialog, AptConfirmDialog, AptProgressDialog
+from aptdaemon.gtk3widgets import AptErrorDialog, AptProgressDialog
+from mintcommon.installer import dialogs
 
 class APT(object):
 
@@ -63,7 +64,7 @@ class APT(object):
     def _confirm_deps(self, trans):
         try:
             if [pkgs for pkgs in trans.dependencies if pkgs]:
-                dia = AptConfirmDialog(trans, parent=self.parent_window)
+                dia = dialogs.ChangesConfirmDialog(trans, parent=self.parent_window)
                 res = dia.run()
                 dia.hide()
                 if res != Gtk.ResponseType.OK:

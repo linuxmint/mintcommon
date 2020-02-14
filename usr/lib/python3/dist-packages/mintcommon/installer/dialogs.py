@@ -19,9 +19,9 @@ class ChangesConfirmDialog(AptConfirmDialog):
     transaction.
     """
 
-    def __init__(self, transaction, task):
-        super(ChangesConfirmDialog, self).__init__(transaction, cache=None, parent=task.parent_window)
-
+    def __init__(self, transaction, task=None, parent=None):
+        super(ChangesConfirmDialog, self).__init__(transaction, cache=None, parent=parent)
+        self.parent_window = parent
         self.set_size_request(500, 350)
         self.task = task
 
@@ -29,12 +29,12 @@ class ChangesConfirmDialog(AptConfirmDialog):
         """Show a message and the dependencies in the dialog."""
         self.treestore.clear()
 
-        if not self.task.parent_window:
+        if not self.parent_window:
             self.set_skip_taskbar_hint(True)
             self.set_keep_above(True)
 
         # Run parent method for apt
-        if self.task.pkginfo.pkg_hash.startswith("a"):
+        if not self.task or self.task.pkginfo.pkg_hash.startswith("a"):
             super(ChangesConfirmDialog, self)._show_changes()
         else:
             # flatpak
