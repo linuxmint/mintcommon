@@ -3,7 +3,7 @@ if sys.version_info.major < 3:
     raise "python3 required"
 import os
 
-from gi.repository import AppStream, Gtk
+from gi.repository import AppStreamGlib, Gtk
 
 def capitalize(string):
     if string and len(string) > 1:
@@ -252,7 +252,7 @@ class FlatpakPkgInfo(PkgInfo):
             return self.summary
 
         if as_component:
-            summary = as_component.get_summary()
+            summary = as_component.get_comment()
 
             if summary != None:
                 self.summary = summary
@@ -303,11 +303,11 @@ class FlatpakPkgInfo(PkgInfo):
                 if icon_to_use == None:
                     icon_to_use = first_icon
 
-                if icon_to_use.get_kind() in (AppStream.IconKind.LOCAL, AppStream.IconKind.CACHED):
-                    self.icon = icon_to_use.get_filename()
-                elif icon_to_use.get_kind() == AppStream.IconKind.REMOTE:
+                if icon_to_use.get_kind() in (AppStreamGlib.IconKind.LOCAL, AppStreamGlib.IconKind.CACHED):
+                    self.icon = os.path.join(icon_to_use.get_prefix(), icon_to_use.get_name())
+                elif icon_to_use.get_kind() == AppStreamGlib.IconKind.REMOTE:
                     self.icon = icon_to_use.get_url()
-                elif icon_to_use.get_kind() == AppStream.IconKind.STOCK:
+                elif icon_to_use.get_kind() == AppStreamGlib.IconKind.STOCK:
                     self.icon = icon_to_use.get_name()
 
         if self.icon == None:
@@ -336,7 +336,7 @@ class FlatpakPkgInfo(PkgInfo):
                 largest = None
 
                 for image in images:
-                    if image.get_kind() == AppStream.ImageKind.SOURCE:
+                    if image.get_kind() == AppStreamGlib.ImageKind.SOURCE:
                         continue
 
                     w = image.get_width()
@@ -357,7 +357,7 @@ class FlatpakPkgInfo(PkgInfo):
                 if best == None:
                     best = largest
 
-                if ss.get_kind() == AppStream.ScreenshotKind.DEFAULT:
+                if ss.get_kind() == AppStreamGlib.ScreenshotKind.DEFAULT:
                     self.screenshots.insert(0, best.get_url())
                 else:
                     self.screenshots.append(best.get_url())
@@ -387,7 +387,7 @@ class FlatpakPkgInfo(PkgInfo):
             return self.url
 
         if as_component:
-            url = as_component.get_url(AppStream.UrlKind.HOMEPAGE)
+            url = as_component.get_url(AppStreamGlib.UrlKind.HOMEPAGE)
 
             if url != None:
                 self.url = url

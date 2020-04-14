@@ -4,7 +4,7 @@ import signal
 import time
 
 import gi
-gi.require_version('AppStream', '1.0')
+gi.require_version('AppStreamGlib', '1.0')
 from gi.repository import GLib, GObject, Gio
 
 from . import cache, _flatpak, _apt

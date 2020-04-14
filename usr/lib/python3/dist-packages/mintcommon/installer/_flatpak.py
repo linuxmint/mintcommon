@@ -10,7 +10,7 @@ import os
 import gi
 gi.require_version('AppStream', '1.0')
 gi.require_version('Gtk', '3.0')
-from gi.repository import AppStream, GLib, GObject, Gtk, Gio
+from gi.repository import AppStreamGlib, GLib, GObject, Gtk, Gio
 
 try:
     gi.require_version('Flatpak', '1.0')
@@ -222,10 +222,12 @@ def process_full_flatpak_installation(cache):
     return cache, flatpak_remote_infos
 
 def _load_appstream_pool(pools, remote):
-    pool = AppStream.Pool()
-    pool.add_metadata_location(remote.get_appstream_dir().get_path())
-    pool.set_cache_flags(AppStream.CacheFlags.NONE)
-    pool.load()
+    pool = AppStreamGlib.Store()
+    path = remote.get_appstream_dir().get_path()
+
+    with open(os.path.join(path, "appstream.xml")) as f:
+        pool.from_xml(f.read(), path)
+
     pools[remote.get_name()] = pool
 
 def initialize_appstream():
@@ -244,8 +246,8 @@ def _initialize_appstream_thread():
         try:
             for remote in fp_sys.list_remotes():
                 _load_appstream_pool(_as_pools, remote)
-        except GLib.Error:
-            print("Installer: Could not initialize appstream components for flatpaks")
+        except GLib.Error as e:
+            print("Installer: Could not initialize appstream components for flatpaks: %s" % e.message)
 
 def search_for_pkginfo_as_component(pkginfo):
     name = pkginfo.name
@@ -261,14 +263,13 @@ def search_for_pkginfo_as_component(pkginfo):
         except Exception:
             return None
 
-        comps = pool.get_components_by_id(name + ".desktop")
+        comps = pool.get_apps_by_id(name + ".desktop")
 
         if comps == []:
             if name in ALIASES.keys():
-                comps = pool.get_components_by_id(ALIASES[name] + ".desktop")
+                comps = pool.get_apps_by_id(ALIASES[name] + ".desktop")
             else:
-                comps = pool.get_components_by_id(name)
-
+                comps = pool.get_apps_by_id(name)
     if len(comps) > 0:
         return comps[0]
     else:
