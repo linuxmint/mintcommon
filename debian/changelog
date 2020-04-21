@@ -1,3 +1,14 @@
+mint-common (2.1.0) ulyana; urgency=medium
+
+  [ Michael Webster ]
+  * (installer) _apt.py: adapt to python-apt 1.9
+  * cache.py: Catch exception when reading the initial-status.gz file.
+  * dialogs.py: Increase the install confirmation/additional packages dialog's default size.
+  * aptdaemon.py: Use the installer's ChangesConfirmDialog instead of AptConfirmDialog.
+  * installer: Use AppStreamGlib instead of AppStream.
+
+ -- Clement Lefebvre <root@linuxmint.com>  Tue, 21 Apr 2020 15:30:46 +0100
+
 mint-common (2.0.9) tricia; urgency=medium
 
   * additionalfiles: Only generate translations for existing MOs
