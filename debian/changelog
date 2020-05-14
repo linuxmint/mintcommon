@@ -1,3 +1,10 @@
+mint-common (2.1.1) ulyana; urgency=medium
+
+  [ Michael Webster ]
+  * debian/control: add appstream-glib gir file to depends.
+
+ -- Clement Lefebvre <root@linuxmint.com>  Thu, 14 May 2020 20:33:58 +0100
+
 mint-common (2.1.0) ulyana; urgency=medium
 
   [ Michael Webster ]
