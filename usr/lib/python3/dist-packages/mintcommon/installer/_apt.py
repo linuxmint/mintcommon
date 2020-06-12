@@ -244,7 +244,7 @@ class MetaTransaction():
                                             reply_handler=self._calculate_changes,
                                             error_handler=self._on_error) # dbus.DBusException
         else:
-            self.apt_client.install_packages([task.pkginfo.name],
+            self.apt_client.install_packages(task.to_install,
                                              reply_handler=self._calculate_changes,
                                              error_handler=self._on_error) # dbus.DBusException
 
