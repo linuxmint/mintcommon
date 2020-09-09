@@ -8,7 +8,7 @@ import tempfile
 import os
 
 import gi
-gi.require_version('AppStream', '1.0')
+gi.require_version('AppStreamGlib', '1.0')
 gi.require_version('Gtk', '3.0')
 from gi.repository import AppStreamGlib, GLib, GObject, Gtk, Gio
 
