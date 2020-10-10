@@ -74,16 +74,17 @@ def generate(domain, path, filename, prefix, name, comment, suffix, genericName=
                     pass
 
     desktopFile.writelines(suffix)
+    desktopFile.close()
 
 def generate_polkit_policy(domain, path, filename, prefix, message, suffix, append=False):
     if append:
-        desktopFile = open(filename, "a")
+        policyFile = open(filename, "a")
     else:
-        desktopFile = open(filename, "w")
+        policyFile = open(filename, "w")
 
-    desktopFile.writelines(prefix)
+    policyFile.writelines(prefix)
 
-    desktopFile.writelines("<message>%s</message>\n" % message)
+    policyFile.writelines("<message>%s</message>\n" % message)
     for directory in sorted(os.listdir(path)):
         mo_file = os.path.join(path, directory, "LC_MESSAGES", "%s.mo" % domain)
         if os.path.exists(mo_file):
@@ -91,8 +92,9 @@ def generate_polkit_policy(domain, path, filename, prefix, message, suffix, appe
                 language = gettext.translation(domain, path, languages=[directory])
                 L_ = language.gettext
                 if (L_(message) != message):
-                    desktopFile.writelines("<message xml:lang=\"%s\">%s</message>\n" % (directory, L_(message)))
+                    policyFile.writelines("<message xml:lang=\"%s\">%s</message>\n" % (directory, L_(message)))
             except:
                 pass
 
-    desktopFile.writelines(suffix)
+    policyFile.writelines(suffix)
+    policyFile.close()
