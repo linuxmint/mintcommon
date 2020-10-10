@@ -13,8 +13,6 @@ def strip_split_and_recombine(comma_separated):
     return out
 
 def generate(domain, path, filename, prefix, name, comment, suffix, genericName=None, keywords=None, append=False):
-    os.environ['LANGUAGE'] = "en_US.UTF-8"
-    gettext.install(domain, path)
     if append:
         desktopFile = open(filename, "a")
     else:
@@ -28,9 +26,9 @@ def generate(domain, path, filename, prefix, name, comment, suffix, genericName=
         if os.path.exists(mo_file):
             try:
                 language = gettext.translation(domain, path, languages=[directory])
-                language.install()
-                if (_(name) != name):
-                    desktopFile.writelines("Name[%s]=%s\n" % (directory, _(name)))
+                L_ = language.gettext
+                if (L_(name) != name):
+                    desktopFile.writelines("Name[%s]=%s\n" % (directory, L_(name)))
             except:
                 pass
 
@@ -41,9 +39,9 @@ def generate(domain, path, filename, prefix, name, comment, suffix, genericName=
             if os.path.exists(mo_file):
                 try:
                     language = gettext.translation(domain, path, languages=[directory])
-                    language.install()
-                    if (_(comment) != comment):
-                        desktopFile.writelines("Comment[%s]=%s\n" % (directory, _(comment)))
+                    L_ = language.gettext
+                    if (L_(comment) != comment):
+                        desktopFile.writelines("Comment[%s]=%s\n" % (directory, L_(comment)))
                 except:
                     pass
 
@@ -55,9 +53,9 @@ def generate(domain, path, filename, prefix, name, comment, suffix, genericName=
             if os.path.exists(mo_file):
                 try:
                     language = gettext.translation(domain, path, languages=[directory])
-                    language.install()
-                    if (_(keywords) != keywords):
-                        translated = strip_split_and_recombine(_(keywords))
+                    L_ = language.gettext
+                    if (L_(keywords) != keywords):
+                        translated = strip_split_and_recombine(L_(keywords))
                         desktopFile.writelines("Keywords[%s]=%s\n" % (directory, translated))
                 except:
                     pass
@@ -69,19 +67,15 @@ def generate(domain, path, filename, prefix, name, comment, suffix, genericName=
             if os.path.exists(mo_file):
                 try:
                     language = gettext.translation(domain, path, languages=[directory])
-                    language.install()
-                    if (_(genericName) != genericName):
-                        desktopFile.writelines("GenericName[%s]=%s\n" % (directory, _(genericName)))
+                    L_ = language.gettext
+                    if (L_(genericName) != genericName):
+                        desktopFile.writelines("GenericName[%s]=%s\n" % (directory, L_(genericName)))
                 except:
                     pass
 
     desktopFile.writelines(suffix)
-    os.environ['LANGUAGE'] = "en_US.UTF-8"
-    gettext.install(domain, path)
 
 def generate_polkit_policy(domain, path, filename, prefix, message, suffix, append=False):
-    os.environ['LANGUAGE'] = "en_US.UTF-8"
-    gettext.install(domain, path)
     if append:
         desktopFile = open(filename, "a")
     else:
@@ -95,12 +89,10 @@ def generate_polkit_policy(domain, path, filename, prefix, message, suffix, appe
         if os.path.exists(mo_file):
             try:
                 language = gettext.translation(domain, path, languages=[directory])
-                language.install()
-                if (_(message) != message):
-                    desktopFile.writelines("<message xml:lang=\"%s\">%s</message>\n" % (directory, _(message)))
+                L_ = language.gettext
+                if (L_(message) != message):
+                    desktopFile.writelines("<message xml:lang=\"%s\">%s</message>\n" % (directory, L_(message)))
             except:
                 pass
 
     desktopFile.writelines(suffix)
-    os.environ['LANGUAGE'] = "en_US.UTF-8"
-    gettext.install(domain, path)
