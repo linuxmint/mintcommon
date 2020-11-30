@@ -1,3 +1,18 @@
+mint-common (2.1.4) ulyssa; urgency=medium
+
+  [ JosephMcc ]
+  * _flatpak.py: Add missing gi.require_version()
+
+  [ okaestne ]
+  * dialogs.py: set up gettext only locally by using class-based gettext API
+  * additionalfiles.py: don't install temporary gettext domains globally
+  * additionalfiles.py: close opened files
+
+  [ Michael Webster ]
+  * installer: attempt to filter out transitional packages in apt.
+
+ -- Clement Lefebvre <root@linuxmint.com>  Mon, 30 Nov 2020 14:58:55 +0000
+
 mint-common (2.1.3) ulyana; urgency=medium
 
   [ Michael Webster ]
