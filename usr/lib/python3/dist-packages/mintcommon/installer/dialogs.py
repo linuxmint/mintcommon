@@ -3,7 +3,7 @@ gi.require_version('XApp', '1.0')
 from gi.repository import GLib, Gtk, GObject, Gdk, XApp
 
 import gettext
-APP = 'mintinstall'
+APP = 'mint-common'
 LOCALE_DIR = "/usr/share/linuxmint/locale"
 t = gettext.translation(APP, LOCALE_DIR, fallback=True)
 _ = t.gettext
