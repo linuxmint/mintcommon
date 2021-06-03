@@ -1,3 +1,13 @@
+mint-common (2.1.5) uma; urgency=medium
+
+  [ Michael Webster ]
+  * pkgInfo.py: Prefer application-supplied icons before looking for them in the system theme.
+
+  [ Vincent Vermeulen ]
+  * Fix for dialogs.py to use translations
+
+ -- Clement Lefebvre <root@linuxmint.com>  Thu, 03 Jun 2021 13:01:08 +0100
+
 mint-common (2.1.4) ulyssa; urgency=medium
 
   [ JosephMcc ]
