@@ -113,7 +113,8 @@ def _get_file_timestamp(gfile):
 def _should_update_appstream_data(fp_sys, remote, arch):
     ret = False
 
-    current_timestamp = _get_file_timestamp(remote.get_appstream_timestamp(arch))
+    gz_dir = remote.get_appstream_dir(arch)
+    current_timestamp = _get_file_timestamp(gz_dir.get_child("appstream.xml.gz"))
 
     try:
         if fp_sys.update_remote_sync(remote.get_name(), None):
