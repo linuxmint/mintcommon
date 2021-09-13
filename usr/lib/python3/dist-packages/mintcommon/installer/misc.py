@@ -2,6 +2,8 @@
 
 import os
 import time
+import inspect
+import threading
 
 DEBUG_MODE = os.getenv("MINTINSTALL_DEBUG", False)
 
@@ -22,3 +24,8 @@ def debug(str):
     if not DEBUG_MODE:
         return
     print("Mintinstall (DEBUG): %s" % str)
+
+def check_ml():
+    fid = inspect.stack()[1][3]
+    on_ml = threading.current_thread() == threading.main_thread()
+    print("%s on mainloop: " % fid, on_ml)

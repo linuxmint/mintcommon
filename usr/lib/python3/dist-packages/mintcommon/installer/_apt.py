@@ -6,7 +6,10 @@ import gi
 gi.require_version('AppStream', '1.0')
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
-from gi.repository import GObject, Gtk
+gi.require_version("PackageKitGlib", "1.0")
+
+from gi.repository import GObject, Gtk, GLib, Gio
+from gi.repository import PackageKitGlib as packagekit
 
 import aptdaemon.client
 from aptdaemon.gtk3widgets import AptErrorDialog, AptProgressDialog
@@ -14,6 +17,8 @@ import aptdaemon.errors
 
 from .pkgInfo import AptPkgInfo
 from .dialogs import ChangesConfirmDialog
+from .misc import check_ml
+from . import dialogs
 
 # List of packages which are either broken or do not install properly in mintinstall
 BROKEN_PACKAGES = ['pepperflashplugin-nonfree']
@@ -43,6 +48,13 @@ def get_apt_cache(full=False):
 
 def add_prefix(name):
     return "apt:%s" % (name)
+
+def get_real_error(code):
+    n = int(code)
+    if n > 255:
+        return packagekit.ErrorEnum(n - 255)
+    else:
+        return packagekit.ClientError(n)
 
 def make_pkg_hash(apt_pkg):
     if not isinstance(apt_pkg, apt.Package):
@@ -157,168 +169,240 @@ def pkginfo_is_installed(pkginfo):
         except:
             return False
 
-def select_packages(task):
-    thread = threading.Thread(target=_calculate_apt_changes, args=(task,))
-    thread.start()
-
-def _is_critical_package(pkg):
-    try:
-        if pkg.essential or pkg.versions[0].priority == "required" or pkg.name in CRITICAL_PACKAGES:
-            return True
-
-        return False
-    except Exception:
-        return False
-
-def _calculate_apt_changes(task):
-    global _apt_cache_lock
-    apt_cache = get_apt_cache()
-
-    with _apt_cache_lock:
-        apt_cache.clear()
-
-        print("Installer: Calculating changes required for APT package: %s" % task.pkginfo.name)
-
-        pkginfo = task.pkginfo
-
-        aptpkg = apt_cache[pkginfo.name]
-
-        try:
-            if aptpkg.is_installed:
-                aptpkg.mark_delete(True, True)
-            else:
-                aptpkg.mark_install()
-        except:
-            if aptpkg.name not in BROKEN_PACKAGES:
-                BROKEN_PACKAGES.append(aptpkg.name)
-
-        changes = apt_cache.get_changes()
-
-        for pkg in changes:
-            if pkg.marked_install:
-                task.to_install.append(pkg.name)
-            elif pkg.marked_upgrade:
-                task.to_update.append(pkg.name)
-            elif pkg.marked_delete:
-                task.to_remove.append(pkg.name)
-
-        task.download_size = apt_cache.required_download
-
-        space = apt_cache.required_space
-
-        if space < 0:
-            task.freed_size = space * -1
-            task.install_size = 0
-        else:
-            task.freed_size = 0
-            task.install_size = space
-
-        for pkg_name in task.to_remove:
-            if _is_critical_package(apt_cache[pkg_name]):
-                print("Installer: apt - cannot remove critical package: %s" % pkg_name)
-                task.info_ready_status = task.STATUS_FORBIDDEN
-
-        if aptpkg.name in BROKEN_PACKAGES:
-            print("Installer: apt- cannot execute task, package is broken: %s" % aptpkg.name)
-            task.info_ready_status = task.STATUS_BROKEN
-
-        print("For install:", task.to_install)
-        print("For removal:", task.to_remove)
-        print("For upgrade:", task.to_update)
-
-        if task.info_ready_status not in (task.STATUS_FORBIDDEN, task.STATUS_BROKEN):
-            task.info_ready_status = task.STATUS_OK
-            task.execute = execute_transaction
-
-    GObject.idle_add(task.info_ready_callback, task)
-
 def sync_cache_installed_states():
     get_apt_cache(full=True)
 
-def execute_transaction(task):
-    if task.client_progress_cb != None:
-        task.has_window = True
-
+def select_packages(task):
     task.transaction = MetaTransaction(task)
 
-class MetaTransaction():
+    print("Installer: Calculating changes required for APT package: %s" % task.pkginfo.name)
+
+class MetaTransaction(packagekit.Task):
     def __init__(self, task):
-        self.apt_client = aptdaemon.client.AptClient()
+        packagekit.Task.__init__(self)
+        check_ml()
+
         self.task = task
-        self.apt_transaction = None
+        self.simulated_download_size = 0
 
-        if task.type == "remove":
-            self.apt_client.remove_packages([task.pkginfo.name],
-                                            reply_handler=self._calculate_changes,
-                                            error_handler=self._on_error) # dbus.DBusException
-        else:
-            self.apt_client.install_packages(task.to_install,
-                                             reply_handler=self._calculate_changes,
-                                             error_handler=self._on_error) # dbus.DBusException
+        thread = threading.Thread(target=self._calculate_apt_changes)
+        thread.start()
 
-    def _calculate_changes(self, apt_transaction):
-        self.apt_transaction = apt_transaction
-        self.apt_transaction.set_debconf_frontend("gnome")
+    def _calculate_apt_changes(self):
+        global _apt_cache_lock
+        apt_cache = get_apt_cache()
+        with _apt_cache_lock:
+            apt_cache.clear()
+            apt_pkg = apt_cache[self.task.pkginfo.name]
+            results = None
 
-        self.apt_transaction.simulate(reply_handler=self._confirm_changes,
-                                      error_handler=self._on_error) # aptdaemon.errors.TransactionFailed, dbus.DBusException
+            pkg_id = packagekit.Package.id_build(apt_pkg.shortname, "", apt_pkg.architecture(), "")
 
-    def _confirm_changes(self):
+        self.set_simulate(True)
+
         try:
-            if [pkgs for pkgs in self.apt_transaction.dependencies if pkgs]:
-                dia = ChangesConfirmDialog(self.apt_transaction, self.task, parent=self.task.parent_window)
-                res = dia.run()
-                dia.hide()
-                if res != Gtk.ResponseType.OK:
-                    GObject.idle_add(self.task.finished_cleanup_cb, self.task)
-                    return
-            self._run_transaction()
-        except Exception as e:
-            print(e)
+            if self.task.type == "remove":
+                results = self.remove_packages_sync(
+                    [pkg_id],
+                    True, True, # allow_deps, autoremove
+                    self.task.cancellable,  # cancellable
+                    self.on_transaction_progress,
+                    None  # progress data
+                )
+            elif self.task.type == "install":
+                results = self.install_packages_sync(
+                    [pkg_id],
+                    self.task.cancellable,  # cancellable
+                    self.on_transaction_progress,
+                    None  # progress data
+                )
+            elif self.task.type == "update":
+                print("todo update")
+        except GLib.Error as e:
+            self.on_transaction_error(e)
 
-    def _on_error(self, error):
-        if self.apt_transaction.error_code == "error-not-authorized":
-            # Silently ignore auth failures
+        self.on_transaction_finished(results)
 
-            self.task.error_message = None # Should already be none, but this is a reminder
+    def on_transaction_error(self, error):
+        # PkErrorEnums are sent from the backend mainly
+        # PkClientErrors are related to interaction with a task/client - accept/deny, etc...
+        if error.code == packagekit.ClientError.DECLINED_SIMULATION:
+            # canceled via additional-changes dialog
             return
-        elif not isinstance(error, aptdaemon.errors.TransactionFailed):
-            # Catch internal errors of the client
-            error = aptdaemon.errors.TransactionFailed(aptdaemon.enums.ERROR_UNKNOWN,
-                                                       str(error))
 
-        if self.task.progress_state != self.task.PROGRESS_STATE_FAILED:
-            self.task.progress_state = self.task.PROGRESS_STATE_FAILED
+        # it thinks it's a PkClientError but it's really PkErrorEnum
+        # the GError code is set to 0xFF + code
+        if error.code >= 0x255:
+            real_code = error.code - 0x255
 
-            self.task.error_message = self.apt_transaction.error_details
+            if real_code == packagekit.ErrorEnum.NOT_AUTHORIZED:
+                # Silently ignore auth failures or cancellation.
+                return
 
-            dia = AptErrorDialog(error)
-            dia.run()
+        if self.task.cancellable.is_cancelled():
+            # user navigated away before simulation was complete, etc...
+            return
+
+        self.task.progress_state = self.task.PROGRESS_STATE_FAILED
+        dialogs.show_error(error.message)
+
+    def on_transaction_finished(self, results):
+        # == operation was successful
+        if results:
+            exit_code = results.get_exit_code()
+            pkerror = results.get_error_code()
+            if pkerror:
+                print("Finished code: ", pkerror.get_code(), pkerror.get_details())
+            print("Exit code:", exit_code)
+
+        if self.task.error_message:
+            self.task.call_error_cleanup_callback()
+        else:
+            self.task.call_finished_cleanup_callback()
+
+    def on_transaction_progress(self, progress, ptype, data=None):
+        if progress.get_status() == packagekit.StatusEnum.UNKNOWN:
+            return
+
+        if self.get_simulate():
+            if ptype == packagekit.ProgressType.DOWNLOAD_SIZE_REMAINING:
+                new_size = progress.get_download_size_remaining()
+                if new_size > self.simulated_download_size:
+                    self.simulated_download_size = new_size
+                # print("current:", progress.get_package_id(), progress.get_status())
+            return
+
+        if ptype == packagekit.ProgressType.PERCENTAGE:
+            self.task.client_progress_cb(self.task.pkginfo, progress.get_percentage(), False)
+
+    def do_simulate_question(self, request, results):
+        if self.task.cancellable.is_cancelled():
+            self.user_declined()
+            return;
+
+        self.task.pkit_request_id = request
+        sack = results.get_package_sack()
+
+        install_dbginfo = []
+        remove_dbginfo = []
+        update_dbginfo = []
+        added_size = 0
+        freed_size = 0
+
+        global _apt_cache_lock
+        apt_cache = get_apt_cache()
+
+        with _apt_cache_lock:
+            for pkg in sack.get_array():
+                info = pkg.get_info()
+
+                def calc_space(pkg, is_update=False):
+                    apt_pkg = apt_cache["%s:%s" % (pkg.get_name(), pkg.get_arch())]
+
+                    candidate = apt_pkg.candidate
+
+                    if is_update:
+                        for version in apt_pkg.versions:
+                            if version.is_installed:
+                                return candidate.installed_size - version.installed_size
+
+                    return candidate.installed_size
+
+                if info == packagekit.InfoEnum.INSTALLING:
+                    self.task.to_install.append(pkg)
+                    added_size += calc_space(pkg)
+                    install_dbginfo.append("%s:%s (%s)" % (pkg.get_name(), pkg.get_arch(), pkg.get_version()))
+                elif info == packagekit.InfoEnum.UPDATING:
+                    self.task.to_update.append(pkg)
+                    added_size += calc_space(pkg, is_update=True)
+                    update_dbginfo.append("%s:%s (%s)" % (pkg.get_name(), pkg.get_arch(), pkg.get_version()))
+                elif info == packagekit.InfoEnum.REMOVING:
+                    self.task.to_remove.append(pkg)
+                    freed_size += calc_space(pkg)
+                    remove_dbginfo.append("%s:%s (%s)" % (pkg.get_name(), pkg.get_arch(), pkg.get_version()))
+
+            print("For install:", install_dbginfo)
+            print("For removal:", remove_dbginfo)
+            print("For upgrade:", update_dbginfo)
+
+            apt_cache.clear()
+            aptpkg = apt_cache[self.task.pkginfo.name]
+
+            try:
+                if aptpkg.is_installed:
+                    aptpkg.mark_delete(True, True)
+                else:
+                    aptpkg.mark_install()
+            except:
+                if aptpkg.name not in BROKEN_PACKAGES:
+                    BROKEN_PACKAGES.append(aptpkg.name)
+
+            self.task.download_size = self.simulated_download_size
+
+            space = added_size - freed_size
+
+            if space < 0:
+                self.task.freed_size = space * -1
+                self.task.install_size = 0
+            else:
+                self.task.freed_size = 0
+                self.task.install_size = space
+
+            for pkg in self.task.to_remove:
+                pkg_name = pkg.get_name()
+                if self._is_critical_package(apt_cache[pkg_name]):
+                    print("Installer: apt - cannot remove critical package: %s" % pkg_name)
+                    self.task.info_ready_status = self.task.STATUS_FORBIDDEN
+
+            if aptpkg.name in BROKEN_PACKAGES:
+                print("Installer: apt- cannot execute task, package is broken: %s" % aptpkg.name)
+                task.info_ready_status = task.STATUS_BROKEN
+
+            if self.task.info_ready_status not in (self.task.STATUS_FORBIDDEN, self.task.STATUS_BROKEN):
+                self.task.info_ready_status = self.task.STATUS_OK
+                self.task.confirm = self._confirm_transaction
+                self.task.cancel = self._cancel_transaction
+                self.task.execute = self._execute_transaction
+
+            self.task.call_info_ready_callback()
+
+    def _is_critical_package(self, pkg):
+        try:
+            if pkg.essential or pkg.versions[0].priority == "required" or pkg.name in CRITICAL_PACKAGES:
+                return True
+
+            return False
+        except Exception:
+            return False
+
+    def _confirm_transaction(self):
+        if len(self.task.to_install) > 1 or len(self.task.to_remove) > 1 or len(self.task.to_update) > 0:
+            dia = ChangesConfirmDialog(self, self.task, parent=self.task.parent_window)
+            res = dia.run()
             dia.hide()
-            GObject.idle_add(self.task.error_cleanup_cb, self.task)
 
-    def _run_transaction(self):
-        self.apt_transaction.connect("finished", self.on_transaction_finished)
+            return res == Gtk.ResponseType.OK
+        else:
+            return True
+
+    def _cancel_transaction(self):
+        self.task.cancellable.cancel()
+
+        if self.task.pkit_request_id > 0:
+            self.user_declined(self.task.pkit_request_id)
+            self.task.pkit_request_id = 0
+
+    def _execute_transaction(self):
+        self.set_simulate(False)
+
+        if self.task.cancellable.is_cancelled():
+            return
+
+        if self.task.client_progress_cb != None:
+            self.task.has_window = True
 
         if self.task.has_window:
-            self.apt_transaction.connect("progress-changed", self.on_transaction_progress)
-            self.apt_transaction.connect("error", self.on_transaction_error)
-            self.apt_transaction.run(reply_handler=lambda: None, error_handler=self._on_error)
+            self.user_accepted(self.task.pkit_request_id)
         else:
-            progress_window = AptProgressDialog(self.apt_transaction)
+            progress_window = AptProgressDialog(self)
             progress_window.run(show_error=False, error_handler=self._on_error)
-
-    def on_transaction_progress(self, apt_transaction, progress):
-        if not apt_transaction.error:
-            self.task.client_progress_cb(self.task.pkginfo, progress, False)
-
-    def on_transaction_error(self, apt_transaction, error_code, error_details):
-        if self.task.progress_state != self.task.PROGRESS_STATE_FAILED:
-            self._on_error(apt_transaction.error)
-
-    def on_transaction_finished(self, apt_transaction, exit_state):
-        # finished signal is always called whether successful or not
-        # Only call here if we succeeded, to prevent multiple calls
-        if (exit_state == aptdaemon.enums.EXIT_SUCCESS) or apt_transaction.error_code == "error-not-authorized":
-            self.task.progress_state = self.task.PROGRESS_STATE_FINISHED
-            GObject.idle_add(self.task.finished_cleanup_cb, self.task)

@@ -93,8 +93,6 @@ class AptPkgInfo(PkgInfo):
             summary = ""
             if candidate.summary is not None:
                 summary = candidate.summary
-                summary = summary.replace("<", "&lt;")
-                summary = summary.replace("&", "&amp;")
 
                 self.summary = capitalize(summary)
 
@@ -327,54 +325,25 @@ class FlatpakPkgInfo(PkgInfo):
             screenshots = as_component.get_screenshots()
 
             for ss in screenshots:
-                images = ss.get_images()
-
-                if len(images) == 0:
-                    continue
-
-                # FIXME: there must be a better way.  Finding an optimal size to use without just
-                # resorting to an original source.
-
-                best = None
-                largest = None
-
-                for image in images:
-                    if image.get_kind() == AppStreamGlib.ImageKind.SOURCE:
-                        continue
-
-                    w = image.get_width()
-
-                    if w > 500 and w < 625:
-                        best = image
-                        break
-
-                    if w > 625:
-                        continue
-
-                    if largest == None or (largest != None and largest.get_width() < w):
-                        largest = image
-
-                if best == None and largest == None:
-                    continue
-
-                if best == None:
-                    best = largest
+                image = ss.get_image(624, 351)
 
                 if ss.get_kind() == AppStreamGlib.ScreenshotKind.DEFAULT:
-                    self.screenshots.insert(0, best.get_url())
+                    self.screenshots.insert(0, image.get_url())
                 else:
-                    self.screenshots.append(best.get_url())
+                    self.screenshots.append(image.get_url())
 
         return self.screenshots
 
     def get_version(self, as_component=None):
         if self.version:
+            # as_component.get_release_default().get_version()
             return self.version
 
         if as_component:
             releases = as_component.get_releases()
 
             if len(releases) > 0:
+                releases.sort(key=lambda r: r.get_timestamp(), reverse=True)
                 version = releases[0].get_version()
 
                 if version:
@@ -391,6 +360,7 @@ class FlatpakPkgInfo(PkgInfo):
 
         if as_component:
             url = as_component.get_url_item(AppStreamGlib.UrlKind.HOMEPAGE)
+
             if url != None:
                 self.url = url
 

@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import json
 import threading
+import tempfile
 
 import gi
 gi.require_version('AppStream', '1.0')
@@ -58,11 +59,18 @@ class PkgCache(object):
     STATUS_OK = 1
 
     @print_timing
-    def __init__(self, have_flatpak=False):
+    def __init__(self, pkg_type, cache_path=None):
         super(PkgCache, self).__init__()
 
         self.status = self.STATUS_EMPTY
-        self.have_flatpak = have_flatpak
+        self.cache_content = pkg_type
+
+        if cache_path != None:
+            self.custom_cache_path = Path(cache_path)
+        else:
+            self.custom_cache_path = None
+
+        self.have_flatpak = pkg_type in ("f", None)
 
         self._items = {}
         self._item_lock = threading.Lock()
@@ -122,14 +130,19 @@ class PkgCache(object):
         sections = {}
         flatpak_remote_infos = {}
 
-        if self.have_flatpak:
+        if self.cache_content in ("f", None):
             cache, flatpak_remote_infos = _flatpak.process_full_flatpak_installation(cache)
 
-        cache, sections = _apt.process_full_apt_cache(cache)
+        if self.cache_content in ("a", None):
+            cache, sections = _apt.process_full_apt_cache(cache)
 
         return cache, sections, flatpak_remote_infos
 
     def _get_best_load_path(self):
+        # If a custom path is set, always regenerate the cache.
+        if self.custom_cache_path != None:
+            return None 
+
         try:
             sys_mtime = os.path.getmtime(SYS_CACHE_PATH)
 
@@ -196,6 +209,9 @@ class PkgCache(object):
         return cache, sections, flatpak_remote_infos
 
     def _get_best_save_path(self):
+        if self.custom_cache_path != None:
+            return self.custom_cache_path 
+
         best_path = None
 
         # Prefer the system location, as all users can access it
