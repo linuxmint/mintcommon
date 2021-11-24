@@ -86,13 +86,16 @@ def process_full_apt_cache(cache):
             continue
         if name.endswith("-perl"):
             continue
+        if name == "snapd":
+            continue
         if ":" in name and name.split(":")[0] in keys:
             continue
         try:
             if "transitional" in pkg.candidate.summary.lower():
                 continue
         except Exception as e:
-            print(e)
+            print("Problem parsing package (maybe it's virtual): %s: %s" % (name, e))
+            continue
             # pass
 
         pkg_hash = make_pkg_hash(pkg)
