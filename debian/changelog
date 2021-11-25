@@ -1,3 +1,11 @@
+mint-common (2.1.6) una; urgency=medium
+
+  [ Michael Webster ]
+  * _flatpak.py: Check the remote appstream timestamp against the actual appstream archive's mtime.
+  * _apt.py: Filter out snapd, don't allow malformed packages to enter the cache.
+
+ -- Clement Lefebvre <root@linuxmint.com>  Thu, 25 Nov 2021 15:09:27 +0000
+
 mint-common (2.1.5) uma; urgency=medium
 
   [ Michael Webster ]
