@@ -139,13 +139,13 @@ class MintRemoveWindow:
                                     flags=0,
                                     message_type=Gtk.MessageType.ERROR,
                                     buttons=Gtk.ButtonsType.CLOSE,
-                                    text=_("Cannot remove package %s as it is required by other packages." % package))
+                                    text=_("Cannot remove package %s as it is required by other packages.") % package)
         warnDlg.set_keep_above(True)
         warnDlg.get_widget_for_response(Gtk.ResponseType.CLOSE).grab_focus()
         warnDlg.vbox.set_spacing(10)
 
         treeview = Gtk.TreeView()
-        column1 = Gtk.TreeViewColumn(_("Package %s is a dependency of the following packages:" % package))
+        column1 = Gtk.TreeViewColumn(_("Package %s is a dependency of the following packages:") % package)
         renderer = Gtk.CellRendererText()
         column1.pack_start(renderer, False)
         column1.add_attribute(renderer, "text", 0)
