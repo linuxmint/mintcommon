@@ -17,3 +17,4 @@
     <annotate key="org.freedesktop.policykit.exec.path">/usr/lib/linuxmint/common/mint-remove-application.py</annotate>
     <annotate key="org.freedesktop.policykit.exec.allow_gui">true</annotate>
   </action>
+</policyconfig>
