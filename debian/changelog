@@ -1,3 +1,13 @@
+mint-common (2.1.7) una; urgency=medium
+
+  [ Stefan Schmidt ]
+  * Missing a closing tag, getting parsing error (#49)
+
+  [ Michael Webster ]
+  * aptdaemon.py: Run the client's cancel callback when authentication fails or is cancelled.
+
+ -- Clement Lefebvre <root@linuxmint.com>  Mon, 07 Mar 2022 18:41:09 +0000
+
 mint-common (2.1.6) una; urgency=medium
 
   [ Michael Webster ]
