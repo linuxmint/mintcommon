@@ -77,7 +77,8 @@ class APT(object):
 
     def _on_error(self, error):
         if isinstance(error, aptdaemon.errors.NotAuthorizedError):
-            # Silently ignore auth failures
+            if self.cancelled_callback != None:
+                self.cancelled_callback()
             return
         elif not isinstance(error, aptdaemon.errors.TransactionFailed):
             # Catch internal errors of the client
