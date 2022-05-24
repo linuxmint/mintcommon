@@ -17,13 +17,20 @@ gettext.install("mint-common", "/usr/share/linuxmint/locale")
 class MintRemoveWindow:
 
     def __init__(self, desktopFile):
+
+        #find deb package
         self.desktopFile = desktopFile
         process = subprocess.run(["dpkg", "-S", self.desktopFile], stdout=subprocess.PIPE)
         output = process.stdout.decode("utf-8")
         package = output[:output.find(":")].split(",")[0]
-        if process.returncode != 0:
+
+        if process.returncode != 0: #deb package not found, try remove flatpack
             if not self.try_remove_flatpak(desktopFile):
-                warnDlg = Gtk.MessageDialog(None, 0, Gtk.MessageType.WARNING, Gtk.ButtonsType.YES_NO, _("This menu item is not associated to any package. Do you want to remove it from the menu anyway?"))
+                warnDlg = Gtk.MessageDialog(parent=None,
+                                            flags=0,
+                                            message_type=Gtk.MessageType.WARNING,
+                                            buttons=Gtk.ButtonsType.YES_NO,
+                                            text=_("This menu item is not associated to any package. Do you want to remove it from the menu anyway?"))
                 warnDlg.set_keep_above(True)
 
                 warnDlg.get_widget_for_response(Gtk.ResponseType.YES).grab_focus()
@@ -37,7 +44,34 @@ class MintRemoveWindow:
 
             sys.exit(0)
 
-        warnDlg = Gtk.MessageDialog(None, 0, Gtk.MessageType.WARNING, Gtk.ButtonsType.OK_CANCEL, _("The following packages will be removed:"))
+        #get package + dependents (reverse dependencies)
+        rdependencies = subprocess.getoutput("apt-get -s -q remove " + package + " | grep Remv")
+        rdependencies = rdependencies.split("\n")
+
+        if len(rdependencies) == 1: #no dependents
+            self.remove_dialog(package, rdependencies)
+        else:
+            self.no_remove_dialog(package, rdependencies)
+
+    def try_remove_flatpak(self, desktopFile):
+        if not "flatpak" in desktopFile:
+            return False
+
+        if not os.path.exists('/usr/bin/mintinstall-remove-app'):
+            return False
+
+        flatpak_remover = subprocess.Popen(['/usr/bin/mintinstall-remove-app', desktopFile])
+        retcode = flatpak_remover.wait()
+
+        return retcode == 0
+
+    def remove_dialog(self, package, rdependencies):
+        #create dialogue
+        warnDlg = Gtk.MessageDialog(parent=None,
+                                    flags=0,
+                                    message_type=Gtk.MessageType.WARNING,
+                                    buttons=Gtk.ButtonsType.OK_CANCEL,
+                                    text=_("The following packages will be removed:"))
         warnDlg.set_keep_above(True)
 
         warnDlg.get_widget_for_response(Gtk.ResponseType.OK).grab_focus()
@@ -50,14 +84,11 @@ class MintRemoveWindow:
         column1.add_attribute(renderer, "text", 0)
         treeview.append_column(column1)
 
-        packages = []
+        packages_to_remove = [package] + self.get_autoremovable_dependencies(package)
         model = Gtk.ListStore(str)
-        dependenciesString = subprocess.getoutput("apt-get -s -q remove " + package + " | grep Remv")
-        dependencies = dependenciesString.split("\n")
-        for dependency in dependencies:
-            dependency = dependency.replace("Remv ", "")
-            model.append([dependency])
-            packages.append(dependency.split()[0])
+        for item in packages_to_remove:
+            model.append([item])
+
         treeview.set_model(model)
         treeview.show()
 
@@ -74,23 +105,71 @@ class MintRemoveWindow:
         response = warnDlg.run()
         if response == Gtk.ResponseType.OK:
             self.apt.set_finished_callback(self.on_finished)
-            self.apt.remove_packages(packages)
+            self.apt.remove_packages(packages_to_remove)
         elif response == Gtk.ResponseType.CANCEL:
             sys.exit(0)
 
         warnDlg.destroy()
 
-    def try_remove_flatpak(self, desktopFile):
-        if not "flatpak" in desktopFile:
-            return False
+    def get_autoremovable_dependencies(self, package):
+        #Find autoremovable packages before removal of package
+        output = subprocess.getoutput("apt-get -s -q autoremove | grep Remv")
+        unreq_before = []
+        if len(output) > 1:
+            output = output.split("\n")
+            for line in output:
+                line = line.replace("Remv ", "")
+                unreq_before.append(line.split()[0])
 
-        if not os.path.exists('/usr/bin/mintinstall-remove-app'):
-            return False
+        #Find autoremovable packages after removal of package
+        output = subprocess.getoutput("LC_ALL=C apt-get -s remove " + package)
+        unreq_after = []
+        begin = output.find("installed and are no longer required:")
+        if begin > 0:
+            output = output[begin + 37:output.find("Use '")]
+            unreq_after = output.split()
 
-        flatpak_remover = subprocess.Popen(['/usr/bin/mintinstall-remove-app', desktopFile])
-        retcode = flatpak_remover.wait()
+        #find autoremovable packages due to removal of package
+        additional_unreq = [item for item in unreq_after if item not in unreq_before]
 
-        return retcode == 0
+        return additional_unreq
+
+    def no_remove_dialog(self, package, rdependencies):
+        warnDlg = Gtk.MessageDialog(parent=None,
+                                    flags=0,
+                                    message_type=Gtk.MessageType.ERROR,
+                                    buttons=Gtk.ButtonsType.CLOSE,
+                                    text=_("Cannot remove package %s as it is required by other packages.") % package)
+        warnDlg.set_keep_above(True)
+        warnDlg.get_widget_for_response(Gtk.ResponseType.CLOSE).grab_focus()
+        warnDlg.vbox.set_spacing(10)
+
+        treeview = Gtk.TreeView()
+        column1 = Gtk.TreeViewColumn(_("Package %s is a dependency of the following packages:") % package)
+        renderer = Gtk.CellRendererText()
+        column1.pack_start(renderer, False)
+        column1.add_attribute(renderer, "text", 0)
+        treeview.append_column(column1)
+
+        model = Gtk.ListStore(str)
+        for rdependency in rdependencies:
+            rdependency = rdependency.replace("Remv ", "")
+            if package != rdependency.split()[0]:
+                model.append([rdependency])
+
+        treeview.set_model(model)
+        treeview.show()
+
+        scrolledwindow = Gtk.ScrolledWindow()
+        scrolledwindow.set_shadow_type(Gtk.ShadowType.ETCHED_OUT)
+        scrolledwindow.set_size_request(150, 150)
+        scrolledwindow.add(treeview)
+        scrolledwindow.show()
+
+        warnDlg.get_content_area().add(scrolledwindow)
+
+        response = warnDlg.run()
+        sys.exit(0)
 
     def on_finished(self, transaction=None, exit_state=None):
         sys.exit(0)
@@ -99,6 +178,7 @@ if __name__ == "__main__":
 
     # Exit if the given path does not exist
     if len(sys.argv) < 2 or not os.path.exists(sys.argv[1]):
+        print("No argument or file not found")
         sys.exit(1)
 
     mainwin = MintRemoveWindow(sys.argv[1])
