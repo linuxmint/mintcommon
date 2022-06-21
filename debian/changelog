@@ -1,3 +1,16 @@
+mint-common (2.1.8) vanessa; urgency=medium
+
+  [ fredcw ]
+  * Don't allow uninstall of a package if it has dependents (reverse dependencies) (#48)
+
+  [ Michael Webster ]
+  * Use debhelper-compat.
+
+  [ Clement Lefebvre ]
+  * l10n: Update POT
+
+ -- Clement Lefebvre <root@linuxmint.com>  Tue, 21 Jun 2022 14:58:20 +0200
+
 mint-common (2.1.7) una; urgency=medium
 
   [ Stefan Schmidt ]
