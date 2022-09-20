@@ -197,9 +197,9 @@ Proceed with the download?"
 
         # Launchpad PPA
         elif origin == 'LP-PPA':
-            ppa_owner, ppa_name, _ = \
-                self.candidate.uri.split("ppa.launchpad.net/")[1].split("/", 2)
-            base_uri = "http://ppa.launchpad.net/%s/%s/ubuntu/pool/main/{self.source_prefix()}/%s" % (ppa_owner, ppa_name, self.candidate.source_name)
+            ppa_url, ppa_owner, ppa_name, _ = \
+                self.candidate.uri.split("://")[1].split("/", 3)
+            base_uri = "https://ppa.launchpadcontent.net/%s/%s/ubuntu/pool/main/{self.source_prefix()}/%s" % (ppa_owner, ppa_name, self.candidate.source_name)
             r, uri = self.get_changelog_uri(base_uri)
             if not r:
                 # fall back to last change info only
