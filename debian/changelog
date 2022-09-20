@@ -1,3 +1,9 @@
+mint-common (2.1.9) vanessa; urgency=medium
+
+  * Adapt to new PPA url
+
+ -- Clement Lefebvre <root@linuxmint.com>  Tue, 20 Sep 2022 14:03:34 +0100
+
 mint-common (2.1.8) vanessa; urgency=medium
 
   [ fredcw ]
