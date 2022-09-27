@@ -390,8 +390,7 @@ class FlatpakPkgInfo(PkgInfo):
             return self.url
 
         if as_component:
-            url = as_component.get_url(AppStreamGlib.UrlKind.HOMEPAGE)
-
+            url = as_component.get_url_item(AppStreamGlib.UrlKind.HOMEPAGE)
             if url != None:
                 self.url = url
 
