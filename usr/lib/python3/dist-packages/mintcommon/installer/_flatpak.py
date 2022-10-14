@@ -75,7 +75,6 @@ def get_fp_sys():
     return _fp_sys
 
 ALIASES = {
-    "org.gnome.Weather" : "org.gnome.Weather.Application"
 }
 
 def make_pkg_hash(ref):
@@ -173,6 +172,9 @@ def _process_remote(cache, fp_sys, remote, arch):
                 continue
 
             if ref.get_arch() != arch:
+                continue
+
+            if ref.get_eol() is not None:
                 continue
 
             _add_package_to_cache(cache, ref, remote_url, False)
@@ -273,13 +275,11 @@ def search_for_pkginfo_as_component(pkginfo):
         except Exception:
             return None
 
-        comps = pool.get_apps_by_id(name + ".desktop")
+        comps = pool.get_apps_by_id(name)
 
         if comps == []:
-            if name in ALIASES.keys():
-                comps = pool.get_apps_by_id(ALIASES[name] + ".desktop")
-            else:
-                comps = pool.get_apps_by_id(name)
+            comps = pool.get_apps_by_id(name + ".desktop")
+
     if len(comps) > 0:
         return comps[0]
     else:
