@@ -261,6 +261,55 @@ def _initialize_appstream_thread():
         except GLib.Error as e:
             print("Installer: Could not initialize appstream components for flatpaks: %s" % e.message)
 
+def get_remote_or_installed_ref(ref, remote_name):
+    fp_sys = get_fp_sys()
+
+    try:
+        iref = fp_sys.get_installed_ref(ref.get_kind(),
+                                        ref.get_name(),
+                                        ref.get_arch(),
+                                        ref.get_branch(),
+                                        None)
+
+        if iref:
+            return iref
+    except GLib.Error as e:
+        print("get_remote_or_installed: get_installed_ref:", e)
+
+    try:
+        rref = fp_sys.fetch_remote_ref_sync(remote_name,
+                                            ref.get_kind(),
+                                            ref.get_name(),
+                                            ref.get_arch(),
+                                            ref.get_branch(),
+                                            None)
+        if rref:
+            return rref
+    except GLib.Error as e:
+        print("get_remote_or_installed: fetch_remote_ref:", e)
+
+    return None
+
+def create_pkginfo_from_as_component(comp, remote_name, remote_url):
+    name = comp.get_pkgname_default()
+    branch = comp.get_branch()
+
+    bundle = comp.get_bundle_default()
+
+    shallow_ref = Flatpak.Ref.parse(bundle.get_id())
+
+    ref = get_remote_or_installed_ref(shallow_ref, remote_name)
+    if ref is None:
+        return None
+
+    pkg_hash = make_pkg_hash(ref)
+
+    print(ref)
+    pkginfo = FlatpakPkgInfo(pkg_hash, remote_name, ref, remote_url)
+    pkginfo.installed = isinstance(ref, Flatpak.InstalledRef)
+
+    return pkginfo
+
 def search_for_pkginfo_as_component(pkginfo):
     name = pkginfo.name
 
@@ -478,7 +527,7 @@ class FlatpakTransaction():
         self.op_error = error
         return False
 
-    def _operation_done(self, transaction, operation, commit, result):
+    def _operation_done(self, transaction, operation, commit, result, data=None):
         self.current_count += 1
         if self.current_count < self.item_count:
             return

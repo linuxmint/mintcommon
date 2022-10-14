@@ -194,6 +194,8 @@ class FlatpakPkgInfo(PkgInfo):
         self.remote = remote # "flathub"
         self.remote_url = remote_url
 
+        self.installed = installed
+
         self.refid = ref.format_ref() # app/org.foo.Bar/x86_64/stable
         self.kind = ref.get_kind() # Will be app for now
         self.arch = ref.get_arch()
