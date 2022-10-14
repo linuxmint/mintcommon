@@ -630,7 +630,7 @@ class Installer:
             # not the actual installed version.
             return _flatpak._get_deployed_version(pkginfo)
 
-    def get_url(self, pkginfo):
+    def get_homepage_url(self, pkginfo):
         """
         Returns the home page url for a package.  If there is
         no url for the package, in the case of flatpak, the remote's url
@@ -638,7 +638,17 @@ class Installer:
         """
         comp = self.get_appstream_app_for_pkginfo(pkginfo)
 
-        return pkginfo.get_url(comp)
+        return pkginfo.get_homepage_url(comp)
+
+    def get_bugtracker_url(self, pkginfo):
+        """
+        Returns the bugtracker url for a package.  If there is
+        no url for the package, returns an empty string. Apt always returns
+        an empty string.
+        """
+        comp = self.get_appstream_app_for_pkginfo(pkginfo)
+
+        return pkginfo.get_bugtracker_url(comp)
 
     def is_busy(self):
         return len(self.tasks.keys()) > 0

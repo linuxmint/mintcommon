@@ -38,7 +38,8 @@ class PkgInfo:
         self.version = None
         self.icon = None
         self.screenshots = []
-        self.url = None
+        self.homepage_url = None
+        self.bugtracker_url = None
 
         # Runtime categories
         self.categories = []
@@ -167,21 +168,23 @@ class AptPkgInfo(PkgInfo):
 
         return self.version
 
-    def get_url(self, apt_pkg=None):
-        if self.url:
-            return self.url
+    def get_homepage_url(self, apt_pkg=None):
+        if self.homepage_url:
+            return self.homepage_url
 
         if apt_pkg:
             if apt_pkg.is_installed:
-                self.url = apt_pkg.installed.homepage
+                self.homepage_url = apt_pkg.installed.homepage
             else:
-                self.url = apt_pkg.candidate.homepage
+                self.homepage_url = apt_pkg.candidate.homepage
 
-        if self.url == None:
-            self.url = ""
+        if self.homepage_url == None:
+            self.homepage_url = ""
 
-        return self.url
+        return self.homepage_url
 
+    def get_bugtracker_url(self, apt_pkg=None):
+        return ""
 
 class FlatpakPkgInfo(PkgInfo):
     def __init__(self, pkg_hash=None, remote=None, ref=None, remote_url=None, installed=False):
@@ -356,17 +359,30 @@ class FlatpakPkgInfo(PkgInfo):
 
         return self.version
 
-    def get_url(self, as_component=None):
-        if self.url:
-            return self.url
+    def get_homepage_url(self, as_component=None):
+        if self.homepage_url:
+            return self.homepage_url
 
         if as_component:
             url = as_component.get_url_item(AppStreamGlib.UrlKind.HOMEPAGE)
 
             if url != None:
-                self.url = url
+                self.homepage_url = url
 
-        if self.url == None:
-            self.url = self.remote_url
+        return self.homepage_url
 
-        return self.url
+    def get_bugtracker_url(self, as_component=None):
+        if self.bugtracker_url:
+            return self.bugtracker_url
+
+        if as_component:
+            url = as_component.get_url_item(AppStreamGlib.UrlKind.BUGTRACKER)
+
+            if url != None:
+                self.bugtracker_url = url
+
+        if self.bugtracker_url == None:
+            self.bugtracker_url = ""
+
+        return self.bugtracker_url
+
