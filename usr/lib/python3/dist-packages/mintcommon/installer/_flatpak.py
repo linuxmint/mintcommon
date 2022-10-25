@@ -274,7 +274,8 @@ def get_remote_or_installed_ref(ref, remote_name):
         if iref:
             return iref
     except GLib.Error as e:
-        print("get_remote_or_installed: get_installed_ref:", e)
+        if e.code != Flatpak.Error.NOT_INSTALLED:
+            print("Installer: Couldn't look up InstalledRef: %s" % e.message)
 
     try:
         rref = fp_sys.fetch_remote_ref_sync(remote_name,
@@ -286,7 +287,8 @@ def get_remote_or_installed_ref(ref, remote_name):
         if rref:
             return rref
     except GLib.Error as e:
-        print("get_remote_or_installed: fetch_remote_ref:", e)
+        if e.code != Flatpak.Error.ALREADY_INSTALLED:
+            print("Installer: Couldn't look up RemoteRef (%s): %s" % (remote_name, e.message))
 
     return None
 
@@ -303,8 +305,6 @@ def create_pkginfo_from_as_component(comp, remote_name, remote_url):
         return None
 
     pkg_hash = make_pkg_hash(ref)
-
-    print(ref)
     pkginfo = FlatpakPkgInfo(pkg_hash, remote_name, ref, remote_url)
     pkginfo.installed = isinstance(ref, Flatpak.InstalledRef)
 
@@ -580,15 +580,18 @@ class FlatpakTransaction():
             self.task.handle_error(e)
             return False # Close 'ready' callback, cancel.
 
-        print("For install:")
-        for ref in self.task.to_install:
-            print(ref.format_ref())
-        print("For removal:")
-        for ref in self.task.to_remove:
-            print(ref.format_ref())
-        print("For updating:")
-        for ref in self.task.to_update:
-            print(ref.format_ref())
+        if len(self.task.to_install) > 0:
+            print("For install:")
+            for ref in self.task.to_install:
+                print(ref.format_ref())
+        if len(self.task.to_remove) > 0:
+            print("For removal:")
+            for ref in self.task.to_remove:
+                print(ref.format_ref())
+        if len(self.task.to_update) > 0:
+            print("For updating:")
+            for ref in self.task.to_update:
+                print(ref.format_ref())
 
         self.item_count = len(self.task.to_install + self.task.to_remove + self.task.to_update)
 
