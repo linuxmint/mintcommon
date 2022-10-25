@@ -327,15 +327,7 @@ class FlatpakPkgInfo(PkgInfo):
             return self.screenshots
 
         if as_component:
-            screenshots = as_component.get_screenshots()
-
-            for ss in screenshots:
-                image = ss.get_image(624, 351)
-
-                if ss.get_kind() == AppStreamGlib.ScreenshotKind.DEFAULT:
-                    self.screenshots.insert(0, image.get_url())
-                else:
-                    self.screenshots.append(image.get_url())
+            self.screenshots = as_component.get_screenshots()
 
         return self.screenshots
 
