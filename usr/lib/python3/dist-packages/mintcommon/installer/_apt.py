@@ -380,6 +380,7 @@ class MetaTransaction(packagekit.Task):
             dia = ChangesConfirmDialog(self, self.task, parent=self.task.parent_window)
             res = dia.run()
             dia.hide()
+            dia.destroy()
 
             return res == Gtk.ResponseType.OK
         else:
