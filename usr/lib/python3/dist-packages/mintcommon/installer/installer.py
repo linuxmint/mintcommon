@@ -536,6 +536,34 @@ class Installer:
 
             return backend_component
 
+    def get_flatpak_launchables(self, pkginfo):
+        """
+        Return the launchables associated with the AsApp for this pkginfo.
+        """
+
+        if pkginfo.pkg_hash.startswith("a"):
+            print("launch_flatpak: pkginfo is not a flatpak")
+
+        comp = self.get_appstream_app_for_pkginfo(pkginfo)
+
+        if comp is None:
+            return None
+
+        launchables = comp.get_launchables()
+
+        if len(launchables) == 0:
+            return None
+
+        return launchables
+
+    def get_flatpak_root_path(self):
+        """
+        Return the root path for the flatpak installation (generally /var/lib/flatpak for system
+        and ~/.local/share/flatpak for user.
+        """
+
+        return _flatpak.get_fp_sys().get_path().get_path()
+
     def get_addons(self, pkginfo):
         """
         Returns an array of app ids of names of available addons
