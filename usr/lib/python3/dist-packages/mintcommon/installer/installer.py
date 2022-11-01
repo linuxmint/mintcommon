@@ -7,7 +7,8 @@ import traceback
 
 import gi
 gi.require_version('AppStreamGlib', '1.0')
-from gi.repository import GLib, GObject, Gio
+gi.require_version('Gtk', '3.0')
+from gi.repository import GLib, GObject, Gio, Gtk
 
 from . import cache, _flatpak, _apt, dialogs
 from .misc import print_timing, check_ml
@@ -15,6 +16,8 @@ from .misc import print_timing, check_ml
 PKG_TYPE_ALL = None
 PKG_TYPE_APT = "a"
 PKG_TYPE_FLATPAK = "f"
+
+Gtk.IconTheme.get_default().append_search_path("/usr/share/linuxmint/icons")
 
 class InstallerTask:
     # task types
