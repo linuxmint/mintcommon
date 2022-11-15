@@ -349,8 +349,9 @@ class MetaTransaction(packagekit.Task):
                 self.task.install_size = space
 
             for pkg in self.task.to_remove:
-                pkg_name = pkg.get_name()
-                if self._is_critical_package(apt_cache[pkg_name]):
+                apt_pkg_name = apt_cache["%s:%s" % (pkg.get_name(), pkg.get_arch())]
+
+                if self._is_critical_package(apt_cache[apt_pkg_name]):
                     print("Installer: apt - cannot remove critical package: %s" % pkg_name)
                     self.task.info_ready_status = self.task.STATUS_FORBIDDEN
 
