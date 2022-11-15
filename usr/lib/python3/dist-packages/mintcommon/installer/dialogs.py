@@ -141,8 +141,9 @@ class ChangesConfirmDialog(AptConfirmDialog):
                 piter = self.treestore.append(None, ["<b>%s</b>" % _("Upgrade")])
 
                 for ref in self.task.to_update:
-                    if len(self.task.initial_refs_to_update) == 0 or ref.format_ref() in self.task.initial_refs_to_update:
-                        continue
+                    if self.task.type == self.task.UPDATE_TASK:
+                        if len(self.task.initial_refs_to_update) == 0 or ref.format_ref() in self.task.initial_refs_to_update:
+                            continue
 
                     self.treestore.append(piter, [ref.get_name()])
 
@@ -155,7 +156,7 @@ class ChangesConfirmDialog(AptConfirmDialog):
                 self.treeview.set_model(filtered_store)
                 self.treeview.set_show_expanders(False)
 
-                if len(self.task.to_install) > 0:
+                if len(self.task.to_install) > 1:
                     title = _("Additional software will be installed")
                 elif len(self.task.to_remove) > 0:
                     title = _("Additional software will be removed")
