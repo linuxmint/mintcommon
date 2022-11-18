@@ -20,7 +20,7 @@ USER_CACHE_PATH = os.path.join(GLib.get_user_cache_dir(), "mintinstall", "pkginf
 MAX_AGE = 7 * (60 * 60 * 24) # days
 
 class CacheLoadingException(Exception):
-    '''Thrown when there was an issue loading the pickled package set'''
+    """Thrown when there was an issue loading the pickled package set"""
 
 class JsonObject(object):
     def __init__(self, pkginfo_cache, section_lists, flatpak_remote_infos):
