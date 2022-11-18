@@ -162,7 +162,7 @@ def pkginfo_is_installed(pkginfo):
 
     with _apt_cache_lock:
         try:
-            return apt_cache[pkginfo.name].installed != None
+            return apt_cache[pkginfo.name].installed is not None
         except:
             return False
 
@@ -391,7 +391,7 @@ class MetaTransaction(packagekit.Task):
         if self.task.cancellable.is_cancelled():
             return
 
-        if self.task.client_progress_cb != None:
+        if self.task.client_progress_cb is not None:
             self.task.has_window = True
 
         if self.task.has_window:

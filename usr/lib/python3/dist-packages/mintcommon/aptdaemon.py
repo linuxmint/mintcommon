@@ -76,7 +76,7 @@ class APT(object):
 
     def _on_error(self, error):
         if isinstance(error, aptdaemon.errors.NotAuthorizedError):
-            if self.cancelled_callback != None:
+            if self.cancelled_callback is not None:
                 self.cancelled_callback()
             return
         elif not isinstance(error, aptdaemon.errors.TransactionFailed):

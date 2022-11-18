@@ -153,7 +153,7 @@ class InstallerTask:
         return self.transaction_log
 
     def call_info_ready_callback(self):
-        if self.info_ready_callback == None:
+        if self.info_ready_callback is None:
             return
 
         if self.use_mainloop:
@@ -168,7 +168,7 @@ class InstallerTask:
             self.error_message = str(error)
 
         if info_stage:
-            if self.info_error_callback == None:
+            if self.info_error_callback is None:
                 dialogs.show_error(self.error_message, self.parent_window)
                 return
 
@@ -735,7 +735,7 @@ class Installer:
         see the task's progress (and cancel it if desired.)
         """
 
-        if task.pkginfo != None:
+        if task.pkginfo is not None:
             key = task.pkginfo.pkg_hash
         else:
             key = "updates"
