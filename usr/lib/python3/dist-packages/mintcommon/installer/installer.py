@@ -149,6 +149,15 @@ class InstallerTask:
         else:
             self.info_ready_callback(self)
 
+    def call_info_error_callback(self):
+        if self.info_error_callback == None:
+            return
+
+        if self.use_mainloop:
+            GLib.idle_add(self.info_error_callback, self, priority=GLib.PRIORITY_DEFAULT)
+        else:
+            self.info_error_callback(self)
+
     def handle_error(self, error, info_stage=False):
         try:
             self.error_message = error.message

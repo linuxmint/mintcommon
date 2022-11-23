@@ -25,7 +25,7 @@ BROKEN_PACKAGES = ['pepperflashplugin-nonfree']
 
 # List extra packages that aren't necessarily marked in their control files, but
 # we know better...
-CRITICAL_PACKAGES = ["mint-common", "mint-meta-core", "mintdesktop"]
+CRITICAL_PACKAGES = ["mint-common", "mint-meta-core", "mintdesktop", "python3"]
 
 def capitalize(string):
     if len(string) > 1:
@@ -199,6 +199,11 @@ class MetaTransaction(packagekit.Task):
             pkg_id = packagekit.Package.id_build(apt_pkg.shortname, "", apt_pkg.architecture(), "")
 
         self.set_simulate(True)
+
+        if self._is_critical_package(apt_pkg):
+            self.task.info_ready_status = self.task.STATUS_FORBIDDEN
+            self.task.call_info_error_callback()
+            return
 
         try:
             if self.task.type == "remove":

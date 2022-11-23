@@ -104,35 +104,6 @@ def _get_remote_name_by_url(fp_sys, url):
 
     return name
 
-def _get_file_timestamp(gfile):
-    try:
-        info = gfile.query_info("time::modified", Gio.FileQueryInfoFlags.NONE, None)
-
-        return info.get_attribute_uint64("time::modified")
-    except GLib.Error as e:
-        if e.code != Gio.IOErrorEnum.NOT_FOUND:
-            print("Installer: flatpak - could not get time::modified from file %s" % gfile.get_path())
-        return 0
-
-def _should_update_appstream_data(fp_sys, remote, arch):
-    ret = False
-
-    gz_dir = remote.get_appstream_dir(arch)
-    current_timestamp = _get_file_timestamp(gz_dir.get_child("appstream.xml.gz"))
-
-    try:
-        if fp_sys.update_remote_sync(remote.get_name(), None):
-            print("Installer: flatpak - metadata for remote '%s' has been updated. Comparing appstream timestamps..." % remote.get_name())
-
-            new_timestamp = _get_file_timestamp(remote.get_appstream_timestamp(arch))
-
-            if (new_timestamp > current_timestamp) or (current_timestamp == 0):
-                ret = True
-    except GLib.Error as e:
-        print("Installer: flatpak - could not update metadata for remote '%s': %s" % (remote.get_name(), e.message))
-
-    return ret
-
 def _process_remote(cache, fp_sys, remote, arch):
     remote_name = remote.get_name()
 
@@ -140,18 +111,13 @@ def _process_remote(cache, fp_sys, remote, arch):
         print("Installer: flatpak - remote '%s' is disabled, skipping" % remote_name)
         return
 
-    remote_url = remote.get_url()
+    print("Installer: flatpak - updating appstream data for remote '%s'..." % remote_name)
 
-    if _should_update_appstream_data(fp_sys, remote, arch):
-        print("Installer: flatpak - new appstream data available for remote '%s', fetching..." % remote_name)
-
-        try:
-            fp_sys.update_appstream_sync(remote_name, arch, None)
-        except GLib.Error:
-            # Not fatal..
-            pass
-    else:
-        print("Installer: flatpak - no new appstream data for remote '%s', skipping download" % remote_name)
+    try:
+        success = fp_sys.update_appstream_sync(remote_name, arch, None)
+    except GLib.Error:
+        # Not fatal..
+        pass
 
     # get_noenumerate indicates whether a remote should be used to list applications.
     # Instead, they're intended for single downloads (via .flatpakref files)
@@ -169,6 +135,11 @@ def _process_remote(cache, fp_sys, remote, arch):
                 continue
 
             if ref.get_name().endswith("BaseApp"):
+                continue
+
+            if ref.get_name().endswith("Sdk"):
+                continue
+            if ref.get_name().endswith("Platform"):
                 continue
 
             if ref.get_arch() != arch:
@@ -258,8 +229,12 @@ def _initialize_appstream_thread():
         try:
             for remote in fp_sys.list_remotes():
                 _load_appstream_pool(_as_pools, remote)
-        except GLib.Error as e:
-            print("Installer: Could not initialize appstream components for flatpaks: %s" % e.message)
+        except (GLib.Error, Exception) as e:
+            try:
+                msg = e.message
+            except:
+                msg = str(e)
+            print("Installer: Could not initialize appstream components for flatpaks: %s" % msg)
 
 def get_remote_or_installed_ref(ref, remote_name):
     fp_sys = get_fp_sys()
