@@ -10,15 +10,6 @@ _ = t.gettext
 
 from aptdaemon.gtk3widgets import AptConfirmDialog
 
-# AptTransaction.dependencies list order
-PKGS_INSTALL = 0
-PKGS_REINSTALL = 1
-PKGS_REMOVE = 2
-PKGS_PURGE = 3
-PKGS_UPGRADE = 4
-PKGS_DOWNGRADE = 5
-PKGS_KEEP = 6
-
 ######################### Subclass Apt's dialog to keep consistency
 
 class ChangesConfirmDialog(AptConfirmDialog):
@@ -44,20 +35,15 @@ class ChangesConfirmDialog(AptConfirmDialog):
         if not self.task or (self.task.pkginfo and self.task.pkginfo.pkg_hash.startswith("a")):
             """Show a message and the dependencies in the dialog."""
             self.treestore.clear()
-            for pkg_list, msg in (
-                                  [self.task.to_install,      _("Install")],
-                                  [self.task.to_reinstall,    _("Reinstall")],
-                                  [self.task.to_remove,       _("Remove")],
-                                  [self.task.to_purge,        _("Purge")],
-                                  [self.task.to_update,       _("Upgrade")],
-                                  [self.task.to_downgrade,    _("Downgrade")],
-                                  [self.task.to_skip_upgrade, _("Skip upgrade")]
+            for pkg_list, msg, min_packages in (
+                                  [self.task.to_install,      _("Install"), 1 if self.task.type == self.task.INSTALL_TASK else 0],
+                                  [self.task.to_reinstall,    _("Reinstall"), 0],
+                                  [self.task.to_remove,       _("Remove"), 1 if self.task.type == self.task.UNINSTALL_TASK else 0],
+                                  [self.task.to_purge,        _("Purge"), 0],
+                                  [self.task.to_update,       _("Upgrade"), 0],
+                                  [self.task.to_downgrade,    _("Downgrade"), 0],
+                                  [self.task.to_skip_upgrade, _("Skip upgrade", 0)]
                                  ):
-
-                if pkg_list == self.task.to_install:
-                    min_packages = 1
-                else:
-                    min_packages = 0
 
                 if len(pkg_list) > min_packages:
                     piter = self.treestore.append(None, ["<b>%s</b>" % msg])
@@ -119,7 +105,8 @@ class ChangesConfirmDialog(AptConfirmDialog):
             # flatpak
             self.set_title(_("Flatpaks"))
 
-            if len(self.task.to_install) > 1:
+            min_packages = 1 if self.task.type == self.task.INSTALL_TASK else 0
+            if len(self.task.to_install) > min_packages:
                 piter = self.treestore.append(None, ["<b>%s</b>" % _("Install")])
 
                 for ref in self.task.to_install:
@@ -128,7 +115,8 @@ class ChangesConfirmDialog(AptConfirmDialog):
 
                     self.treestore.append(piter, [ref.get_name()])
 
-            if len(self.task.to_remove) > 1:
+            min_packages = 1 if self.task.type == self.task.UNINSTALL_TASK else 0
+            if len(self.task.to_remove) > min_packages:
                 piter = self.treestore.append(None, ["<b>%s</b>" % _("Remove")])
 
                 for ref in self.task.to_remove:
@@ -138,12 +126,19 @@ class ChangesConfirmDialog(AptConfirmDialog):
                     self.treestore.append(piter, [ref.get_name()])
 
             if len(self.task.to_update) > 0:
-                piter = self.treestore.append(None, ["<b>%s</b>" % _("Upgrade")])
-
+                # If this is an update task (like from mintupdate) we may have selected updates explicitly, and there may be
+                # updates we *didn't* select but are required for an update we did. We only want to add those updates that
+                # are pulled in the second case, since the updates we did select do not need to be displayed again (this is
+                # following apt behavior, where we only list dependencies here and unexpected changes).
+                header_added = False
                 for ref in self.task.to_update:
                     if self.task.type == self.task.UPDATE_TASK:
                         if len(self.task.initial_refs_to_update) == 0 or ref.format_ref() in self.task.initial_refs_to_update:
                             continue
+
+                    if not header_added:
+                        piter = self.treestore.append(None, ["<b>%s</b>" % _("Upgrade")])
+                        header_added = True
 
                     self.treestore.append(piter, [ref.get_name()])
 

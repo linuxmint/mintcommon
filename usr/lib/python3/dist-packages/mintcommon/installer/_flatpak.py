@@ -125,6 +125,8 @@ def _process_remote(cache, fp_sys, remote, arch):
         print("Installer: flatpak - remote '%s' is marked as no-enumerate skipping package listing" % remote_name)
         return
 
+    remote_url = remote.get_url()
+
     try:
         for ref in fp_sys.list_remote_refs_sync(remote_name, None):
             name = ref.get_name()
@@ -312,7 +314,7 @@ def search_for_pkginfo_as_component(pkginfo):
 def _get_system_theme_matches():
     fp_sys = get_fp_sys()
     arch = Flatpak.get_default_arch()
-    check_ml("get_system_theme_matches")
+
     theme_refs = []
 
     gtksettings = Gtk.Settings.get_default()
@@ -432,24 +434,27 @@ class FlatpakTransaction():
                 except GLib.Error as e:
                     print("Problem checking installed flatpaks updates: %s" % e.message)
                     raise
+
+
+            # Always install the corresponding theme if we didn't already
+            # have it.
+            if self.task.type != "remove":
+                for theme_ref in _get_system_theme_matches():
+                    try:
+                        self.transaction.add_install(theme_ref.get_remote_name(),
+                                                     theme_ref.format_ref(),
+                                                     None)
+                    except GLib.Error as e:
+                        if e.code == Flatpak.Error.ALREADY_INSTALLED:
+                            continue
+                        else:
+                            raise
+
+            # Simulate the install, cancel once ops are generated.
+
         except GLib.Error as e:
             self.on_transaction_error(e)
 
-            # Besides updating, always install the corresponding theme if we didn't already
-            # have it.
-            # if task.initial_refs_to_update != []:
-            #     for theme_ref in _get_system_theme_matches():
-            #         try:
-            #             self.transaction.add_install(theme_ref.get_remote_name(),
-            #                                          theme_ref.format_ref(),
-            #                                          None)
-            #         except GLib.Error as e:
-            #             if e.code == Flatpak.Error.ALREADY_INSTALLED:
-            #                 continue
-            #             else:
-            #                 raise
-
-            # Simulate the install, cancel once ops are generated.
 
         try:
             self.transaction.run(self.task.cancellable)
@@ -513,13 +518,16 @@ class FlatpakTransaction():
         try:
             fp_sys = get_fp_sys()
 
+            dl_size = 0
+            disk_size = 0
+
             for op in self.transaction.get_operations():
                 ref = Flatpak.Ref.parse(op.get_ref())
                 op_type = op.get_operation_type()
 
                 if op_type == Flatpak.TransactionOperationType.INSTALL:
-                    self.task.download_size += op.get_download_size()
-                    self.task.install_size += op.get_installed_size()
+                    dl_size += op.get_download_size()
+                    disk_size += op.get_installed_size()
                     self._add_to_list(self.task.to_install, ref)
                 elif op_type == Flatpak.TransactionOperationType.UNINSTALL:
                     iref = fp_sys.get_installed_ref(ref.get_kind(),
@@ -528,7 +536,7 @@ class FlatpakTransaction():
                                                     ref.get_branch(),
                                                     None)
 
-                    self.task.freed_size += iref.get_installed_size()
+                    disk_size -= iref.get_installed_size()
                     self._add_to_list(self.task.to_remove, ref)
                 else: # update
                     iref = fp_sys.get_installed_ref(ref.get_kind(),
@@ -539,16 +547,17 @@ class FlatpakTransaction():
 
                     current_installed_size = iref.get_installed_size()
                     new_installed_size = op.get_installed_size()
-                    dl_size = op.get_download_size()
-
-                    self.task.download_size += op.get_download_size()
-
-                    if current_installed_size < new_installed_size:
-                        self.task.install_size += new_installed_size - current_installed_size
-                    else:
-                        self.task.freed_size += current_installed_size - new_installed_size
+                    dl_size += op.get_download_size()
+                    disk_size += new_installed_size - current_installed_size
 
                     self._add_to_list(self.task.to_update, ref)
+
+            self.task.download_size = dl_size
+            if disk_size > 0:
+                self.task.install_size = disk_size
+            else:
+                self.task.freed_size = abs(disk_size)
+
         except Exception as e:
             # Something went wrong, bail out
             self.task.info_ready_status = self.task.STATUS_BROKEN
