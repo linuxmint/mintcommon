@@ -439,16 +439,17 @@ class FlatpakTransaction():
             # Always install the corresponding theme if we didn't already
             # have it.
             if self.task.type != "remove":
-                for theme_ref in _get_system_theme_matches():
-                    try:
-                        self.transaction.add_install(theme_ref.get_remote_name(),
-                                                     theme_ref.format_ref(),
-                                                     None)
-                    except GLib.Error as e:
-                        if e.code == Flatpak.Error.ALREADY_INSTALLED:
-                            continue
-                        else:
-                            raise
+                if self.task.asapp is not None and self.task.asapp.get_kind() != AppStreamGlib.AppKind.ADDON:
+                    for theme_ref in _get_system_theme_matches():
+                        try:
+                            self.transaction.add_install(theme_ref.get_remote_name(),
+                                                         theme_ref.format_ref(),
+                                                         None)
+                        except GLib.Error as e:
+                            if e.code == Flatpak.Error.ALREADY_INSTALLED:
+                                continue
+                            else:
+                                raise
 
             # Simulate the install, cancel once ops are generated.
 

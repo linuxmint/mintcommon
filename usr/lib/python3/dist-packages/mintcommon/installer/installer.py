@@ -52,6 +52,9 @@ class InstallerTask:
         # pkginfo will be None for an update task
         self.pkginfo = pkginfo
 
+        # AsApp if available
+        self.asapp = None
+
         self.name = None
 
         self.initial_refs_to_update = []
@@ -387,6 +390,7 @@ class Installer:
             task.type = InstallerTask.INSTALL_TASK
 
         task.set_version(self)
+        task.asapp = self.get_appstream_app_for_pkginfo(pkginfo)
 
         if pkginfo.pkg_hash.startswith("a"):
             _apt.select_packages(task)
@@ -680,15 +684,15 @@ class Installer:
 
         return pkginfo.get_homepage_url(comp)
 
-    def get_bugtracker_url(self, pkginfo):
+    def get_help_url(self, pkginfo):
         """
-        Returns the bugtracker url for a package.  If there is
+        Returns the help url for a package.  If there is
         no url for the package, returns an empty string. Apt always returns
         an empty string.
         """
         comp = self.get_appstream_app_for_pkginfo(pkginfo)
 
-        return pkginfo.get_bugtracker_url(comp)
+        return pkginfo.get_help_url(comp)
 
     def is_busy(self):
         return len(self.tasks.keys()) > 0

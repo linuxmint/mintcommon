@@ -39,7 +39,7 @@ class PkgInfo:
         self.icon = None
         self.screenshots = []
         self.homepage_url = None
-        self.bugtracker_url = None
+        self.help_url = None
 
         # Runtime categories
         self.categories = []
@@ -183,7 +183,8 @@ class AptPkgInfo(PkgInfo):
 
         return self.homepage_url
 
-    def get_bugtracker_url(self, apt_pkg=None):
+    def get_help_url(self, apt_pkg=None):
+        # We can only get the homepage from apt
         return ""
 
 class FlatpakPkgInfo(PkgInfo):
@@ -363,18 +364,18 @@ class FlatpakPkgInfo(PkgInfo):
 
         return self.homepage_url
 
-    def get_bugtracker_url(self, as_component=None):
-        if self.bugtracker_url:
-            return self.bugtracker_url
+    def get_help_url(self, as_component=None):
+        if self.help_url:
+            return self.help_url
 
         if as_component:
-            url = as_component.get_url_item(AppStreamGlib.UrlKind.BUGTRACKER)
+            url = as_component.get_url_item(AppStreamGlib.UrlKind.HELP)
 
             if url != None:
-                self.bugtracker_url = url
+                self.help_url = url
 
-        if self.bugtracker_url == None:
-            self.bugtracker_url = ""
+        if self.help_url == None:
+            self.help_url = ""
 
-        return self.bugtracker_url
+        return self.help_url
 
