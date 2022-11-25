@@ -59,7 +59,7 @@ class PkgCache(object):
     STATUS_OK = 1
 
     @print_timing
-    def __init__(self, pkg_type, cache_path=None):
+    def __init__(self, pkg_type, cache_path=None, have_flatpak=True):
         super(PkgCache, self).__init__()
 
         self.status = self.STATUS_EMPTY
@@ -70,7 +70,7 @@ class PkgCache(object):
         else:
             self.custom_cache_path = None
 
-        self.have_flatpak = pkg_type in ("f", None)
+        self.have_flatpak = have_flatpak and pkg_type in ("f", None)
 
         self._items = {}
         self._item_lock = threading.Lock()
@@ -129,8 +129,7 @@ class PkgCache(object):
         cache = {}
         sections = {}
         flatpak_remote_infos = {}
-
-        if self.cache_content in ("f", None):
+        if self.have_flatpak and self.cache_content in ("f", None):
             cache, flatpak_remote_infos = _flatpak.process_full_flatpak_installation(cache)
 
         if self.cache_content in ("a", None):

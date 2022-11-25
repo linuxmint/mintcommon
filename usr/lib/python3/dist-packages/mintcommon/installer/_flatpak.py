@@ -694,6 +694,14 @@ def list_updated_pkginfos(cache):
 
     return updated
 
+def get_updated_theme_refs():
+    fp_sys = get_fp_sys()
+
+    if not fp_sys.list_installed_refs_by_kind(Flatpak.RefKind.APP, None):
+        return []
+
+    return _get_system_theme_matches()
+
 def find_pkginfo(cache, string):
     for key in cache.get_subset_of_type("f").keys():
         candidate = cache[key]

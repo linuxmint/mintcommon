@@ -212,25 +212,23 @@ class Installer:
         self.inited = False
 
         self.have_flatpak = False
-        self._determine_flatpak_status()
+        self.have_flatpak = self._get_flatpak_status()
 
         self.cache = {}
         self._init_cb = None
 
         self.startup_timer = time.time()
 
-    def _determine_flatpak_status(self):
+    def _get_flatpak_status(self):
         try:
             gi.require_version('Flatpak', '1.0')
             from gi.repository import Flatpak
 
-            self.have_flatpak = True
-
-            return
+            return True
         except:
             print("No flatpak support, install flatpak and gir1.2-flatpak-1.0 and restart mintinstall to enable it.")
 
-        self.have_flatpak = False
+        return False
 
     def init_sync(self):
         """
@@ -247,13 +245,12 @@ class Installer:
 
         if self._fp_remotes_have_changed():
             self.remotes_changed = True
-            return False
 
         self.backend_table = {}
 
-        self.cache = cache.PkgCache(self.pkg_type, self.cache_path)
+        self.cache = cache.PkgCache(self.pkg_type, self.cache_path, self.have_flatpak)
 
-        if self.cache.status == self.cache.STATUS_OK:
+        if self.cache.status == self.cache.STATUS_OK and not self.remotes_changed:
             self.inited = True
 
             GObject.idle_add(self.initialize_appstream)
@@ -270,7 +267,7 @@ class Installer:
         """
         self.backend_table = {}
 
-        self.cache = cache.PkgCache(self.pkg_type, self.cache_path)
+        self.cache = cache.PkgCache(self.pkg_type, self.cache_path, self.have_flatpak)
 
         self._init_cb = ready_callback
 
