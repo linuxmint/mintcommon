@@ -42,7 +42,7 @@ class ChangesConfirmDialog(AptConfirmDialog):
                                   [self.task.to_purge,        _("Purge"), 0],
                                   [self.task.to_update,       _("Upgrade"), 0],
                                   [self.task.to_downgrade,    _("Downgrade"), 0],
-                                  [self.task.to_skip_upgrade, _("Skip upgrade", 0)]
+                                  [self.task.to_skip_upgrade, _("Skip upgrade"), 0]
                                  ):
 
                 if len(pkg_list) > min_packages:
