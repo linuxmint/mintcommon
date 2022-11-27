@@ -8,12 +8,10 @@ gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
 gi.require_version("PackageKitGlib", "1.0")
 
-from gi.repository import GObject, Gtk, GLib, Gio
+from gi.repository import Gtk, GLib
 from gi.repository import PackageKitGlib as packagekit
 
-import aptdaemon.client
-from aptdaemon.gtk3widgets import AptErrorDialog, AptProgressDialog
-import aptdaemon.errors
+from aptdaemon.gtk3widgets import AptProgressDialog
 
 from .pkgInfo import AptPkgInfo
 from .dialogs import ChangesConfirmDialog
@@ -357,12 +355,12 @@ class MetaTransaction(packagekit.Task):
                 apt_pkg_name = apt_cache["%s:%s" % (pkg.get_name(), pkg.get_arch())]
 
                 if self._is_critical_package(apt_cache[apt_pkg_name]):
-                    print("Installer: apt - cannot remove critical package: %s" % pkg_name)
+                    print("Installer: apt - cannot remove critical package: %s" % apt_pkg_name)
                     self.task.info_ready_status = self.task.STATUS_FORBIDDEN
 
             if aptpkg.name in BROKEN_PACKAGES:
                 print("Installer: apt- cannot execute task, package is broken: %s" % aptpkg.name)
-                task.info_ready_status = task.STATUS_BROKEN
+                self.task.info_ready_status = self.task.STATUS_BROKEN
 
             if self.task.info_ready_status not in (self.task.STATUS_FORBIDDEN, self.task.STATUS_BROKEN):
                 self.task.info_ready_status = self.task.STATUS_OK

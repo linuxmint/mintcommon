@@ -1,6 +1,6 @@
 import gi
 gi.require_version('XApp', '1.0')
-from gi.repository import GLib, Gtk, GObject, Gdk, XApp, Pango
+from gi.repository import GLib, Gtk, GObject, Gdk, XApp
 
 import gettext
 APP = 'mint-common'

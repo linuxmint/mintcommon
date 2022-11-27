@@ -1,9 +1,7 @@
 #!/usr/bin/python3
 import threading
-import signal
 import time
 import tempfile
-import traceback
 
 import gi
 gi.require_version('AppStreamGlib', '1.0')

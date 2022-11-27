@@ -3,7 +3,6 @@ import os
 from pathlib import Path
 import json
 import threading
-import tempfile
 
 import gi
 gi.require_version('AppStream', '1.0')
