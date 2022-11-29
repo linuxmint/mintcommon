@@ -1,3 +1,23 @@
+mint-common (2.2.0) vera; urgency=medium
+
+  [ Michael Webster ]
+  * installer: Use the correct method for getting the app's homepage.
+
+  [ Clement Lefebvre ]
+  * mint-remove-application: Run in user mode
+
+  [ Michael Webster ]
+  * Refactor to get updates working with mintupdate (#45)
+
+  [ hduelme ]
+  * use double-quoted strings for docstrings (#50)
+  * replace trailing semicolon (#52)
+
+  [ Clement Lefebvre ]
+  * l10n: Update POT
+
+ -- Clement Lefebvre <root@linuxmint.com>  Tue, 29 Nov 2022 14:39:57 +0000
+
 mint-common (2.1.9) vanessa; urgency=medium
 
   * Adapt to new PPA url
