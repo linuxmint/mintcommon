@@ -318,7 +318,7 @@ class Installer:
         installed apps, plus if you uninstall the app, the remote gets auto-removed.
         """
         changed = False
-        real_remote_count = 0;
+        real_remote_count = 0
 
         saved_remotes = self.settings.get_strv("flatpak-remotes")
         fp_remotes = self.list_flatpak_remotes()
