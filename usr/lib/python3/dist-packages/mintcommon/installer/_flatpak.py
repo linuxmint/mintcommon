@@ -10,7 +10,7 @@ import os
 import gi
 gi.require_version('AppStreamGlib', '1.0')
 gi.require_version('Gtk', '3.0')
-from gi.repository import AppStreamGlib, GLib, GObject, Gtk, Gio
+from gi.repository import AppStreamGlib, GLib, GObject, Gtk, Gio, Gdk
 
 try:
     gi.require_version('Flatpak', '1.0')
@@ -22,6 +22,11 @@ from .pkgInfo import FlatpakPkgInfo
 from . import dialogs
 from .dialogs import ChangesConfirmDialog, FlatpakProgressWindow
 from .misc import debug
+
+
+def check_ml(_id):
+    on_ml = threading.current_thread() == threading.main_thread()
+    print("%s on mainloop: %s" %(_id, on_ml))
 
 class FlatpakRemoteInfo():
     def __init__(self, remote=None):
@@ -70,7 +75,6 @@ def get_fp_sys():
     return _fp_sys
 
 ALIASES = {
-    "org.gnome.Weather" : "org.gnome.Weather.Application"
 }
 
 def make_pkg_hash(ref):
@@ -100,35 +104,6 @@ def _get_remote_name_by_url(fp_sys, url):
 
     return name
 
-def _get_file_timestamp(gfile):
-    try:
-        info = gfile.query_info("time::modified", Gio.FileQueryInfoFlags.NONE, None)
-
-        return info.get_attribute_uint64("time::modified")
-    except GLib.Error as e:
-        if e.code != Gio.IOErrorEnum.NOT_FOUND:
-            print("Installer: flatpak - could not get time::modified from file %s" % gfile.get_path())
-        return 0
-
-def _should_update_appstream_data(fp_sys, remote, arch):
-    ret = False
-
-    gz_dir = remote.get_appstream_dir(arch)
-    current_timestamp = _get_file_timestamp(gz_dir.get_child("appstream.xml.gz"))
-
-    try:
-        if fp_sys.update_remote_sync(remote.get_name(), None):
-            print("Installer: flatpak - metadata for remote '%s' has been updated. Comparing appstream timestamps..." % remote.get_name())
-
-            new_timestamp = _get_file_timestamp(remote.get_appstream_timestamp(arch))
-
-            if (new_timestamp > current_timestamp) or (current_timestamp == 0):
-                ret = True
-    except GLib.Error as e:
-        print("Installer: flatpak - could not update metadata for remote '%s': %s" % (remote.get_name(), e.message))
-
-    return ret
-
 def _process_remote(cache, fp_sys, remote, arch):
     remote_name = remote.get_name()
 
@@ -136,18 +111,13 @@ def _process_remote(cache, fp_sys, remote, arch):
         print("Installer: flatpak - remote '%s' is disabled, skipping" % remote_name)
         return
 
-    remote_url = remote.get_url()
+    print("Installer: flatpak - updating appstream data for remote '%s'..." % remote_name)
 
-    if _should_update_appstream_data(fp_sys, remote, arch):
-        print("Installer: flatpak - new appstream data available for remote '%s', fetching..." % remote_name)
-
-        try:
-            fp_sys.update_appstream_sync(remote_name, arch, None)
-        except GLib.Error:
-            # Not fatal..
-            pass
-    else:
-        print("Installer: flatpak - no new appstream data for remote '%s', skipping download" % remote_name)
+    try:
+        success = fp_sys.update_appstream_sync(remote_name, arch, None)
+    except GLib.Error:
+        # Not fatal..
+        pass
 
     # get_noenumerate indicates whether a remote should be used to list applications.
     # Instead, they're intended for single downloads (via .flatpakref files)
@@ -155,20 +125,34 @@ def _process_remote(cache, fp_sys, remote, arch):
         print("Installer: flatpak - remote '%s' is marked as no-enumerate skipping package listing" % remote_name)
         return
 
+    remote_url = remote.get_url()
+
     try:
         for ref in fp_sys.list_remote_refs_sync(remote_name, None):
-            if ref.get_kind() != Flatpak.RefKind.APP:
-                continue
+            name = ref.get_name()
 
-            if ref.get_arch() != arch:
+            if ".Plugin" in name:
+                continue
+            if ".Extension" in name:
                 continue
 
             if ref.get_name().endswith("BaseApp"):
                 continue
 
+            if ref.get_name().endswith("Sdk"):
+                continue
+            if ref.get_name().endswith("Platform"):
+                continue
+
+            if ref.get_arch() != arch:
+                continue
+
+            if ref.get_eol() is not None:
+                continue
+
             _add_package_to_cache(cache, ref, remote_url, False)
     except GLib.Error as e:
-        print(e.message)
+        print("Process remote:", e.message)
 
 def _add_package_to_cache(cache, ref, remote_url, installed):
     pkg_hash = make_pkg_hash(ref)
@@ -204,13 +188,13 @@ def process_full_flatpak_installation(cache):
             remote_name = remote.get_name()
 
             try:
-                for ref in fp_sys.list_installed_refs_by_kind(Flatpak.RefKind.APP, None):
+                for ref in fp_sys.list_installed_refs(None):
                     # All remotes will see installed refs, but the installed refs will always
                     # report their correct origin, so only add installed refs when they match the remote.
                     if ref.get_origin() == remote_name:
                         _add_package_to_cache(cache, ref, remote.get_url(), True)
             except GLib.Error as e:
-                print(e.message)
+                print("adding packages:", e.message)
 
             flatpak_remote_infos[remote_name] = FlatpakRemoteInfo(remote)
 
@@ -247,8 +231,61 @@ def _initialize_appstream_thread():
         try:
             for remote in fp_sys.list_remotes():
                 _load_appstream_pool(_as_pools, remote)
-        except GLib.Error as e:
-            print("Installer: Could not initialize appstream components for flatpaks: %s" % e.message)
+        except (GLib.Error, Exception) as e:
+            try:
+                msg = e.message
+            except:
+                msg = str(e)
+            print("Installer: Could not initialize appstream components for flatpaks: %s" % msg)
+
+def get_remote_or_installed_ref(ref, remote_name):
+    fp_sys = get_fp_sys()
+
+    try:
+        iref = fp_sys.get_installed_ref(ref.get_kind(),
+                                        ref.get_name(),
+                                        ref.get_arch(),
+                                        ref.get_branch(),
+                                        None)
+
+        if iref:
+            return iref
+    except GLib.Error as e:
+        if e.code != Flatpak.Error.NOT_INSTALLED:
+            print("Installer: Couldn't look up InstalledRef: %s" % e.message)
+
+    try:
+        rref = fp_sys.fetch_remote_ref_sync(remote_name,
+                                            ref.get_kind(),
+                                            ref.get_name(),
+                                            ref.get_arch(),
+                                            ref.get_branch(),
+                                            None)
+        if rref:
+            return rref
+    except GLib.Error as e:
+        if e.code != Flatpak.Error.ALREADY_INSTALLED:
+            print("Installer: Couldn't look up RemoteRef (%s): %s" % (remote_name, e.message))
+
+    return None
+
+def create_pkginfo_from_as_component(comp, remote_name, remote_url):
+    name = comp.get_pkgname_default()
+    branch = comp.get_branch()
+
+    bundle = comp.get_bundle_default()
+
+    shallow_ref = Flatpak.Ref.parse(bundle.get_id())
+
+    ref = get_remote_or_installed_ref(shallow_ref, remote_name)
+    if ref is None:
+        return None
+
+    pkg_hash = make_pkg_hash(ref)
+    pkginfo = FlatpakPkgInfo(pkg_hash, remote_name, ref, remote_url)
+    pkginfo.installed = isinstance(ref, Flatpak.InstalledRef)
+
+    return pkginfo
 
 def search_for_pkginfo_as_component(pkginfo):
     name = pkginfo.name
@@ -264,231 +301,19 @@ def search_for_pkginfo_as_component(pkginfo):
         except Exception:
             return None
 
-        comps = pool.get_apps_by_id(name + ".desktop")
+        comps = pool.get_apps_by_id(name)
 
         if comps == []:
-            if name in ALIASES.keys():
-                comps = pool.get_apps_by_id(ALIASES[name] + ".desktop")
-            else:
-                comps = pool.get_apps_by_id(name)
+            comps = pool.get_apps_by_id(name + ".desktop")
+
     if len(comps) > 0:
         return comps[0]
     else:
         return None
 
-def _is_ref_installed(fp_sys, ref):
-    try:
-        iref = fp_sys.get_installed_ref(ref.get_kind(),
-                                        ref.get_name(),
-                                        ref.get_arch(),
-                                        ref.get_branch(),
-                                        None)
-
-        if iref:
-            return True
-    except GLib.Error:
-        pass
-    except AttributeError: # bad/null ref
-        pass
-
-    return False
-
-def _get_remote_sizes(fp_sys, remote, ref):
-    # Since 0.11.4, this info is part of FlatpakRemoteRef
-    # dl_s = ref.props.download_size
-    # inst_s = ref.props.installed_size
-    # But it appears to always contain identical dl and installed sizes,
-    # so avoid it for now.
-
-    try:
-        success, dl_s, inst_s = fp_sys.fetch_remote_size_sync(remote,
-                                                              ref,
-                                                              None)
-    except GLib.Error as e:
-        print(e.message)
-        # Not fatal?
-        dl_s = 0
-        inst_s = 0
-
-    return dl_s, inst_s
-
-def _get_installed_size(fp_sys, ref):
-    if isinstance(ref, Flatpak.InstalledRef):
-        return ref.get_installed_size()
-    else:
-        try:
-            iref = fp_sys.get_installed_ref(ref.get_kind(),
-                                            ref.get_name(),
-                                            ref.get_arch(),
-                                            ref.get_branch(),
-                                            None)
-            return iref.get_installed_size()
-        except GLib.Error as e:
-            print(e.message)
-            # This isn't fatal I guess?
-            return 0
-
-def _add_to_list(ref_list, ref):
-    ref_str = ref.format_ref()
-
-    for existing_ref in ref_list:
-        if ref_str == existing_ref.format_ref():
-            debug("Skipping %s, already added to task" % ref_str)
-            return
-
-    ref_list.append(ref)
-
-def _add_ref_to_task(fp_sys, task, ref, needs_update=False):
-    if task.type == "install":
-        if needs_update:
-            _add_to_list(task.to_update, ref)
-        else:
-            _add_to_list(task.to_install, ref)
-
-        dl_s, inst_s = _get_remote_sizes(fp_sys, ref.get_remote_name(), ref)
-
-        task.download_size += dl_s
-        task.install_size += inst_s
-    elif task.type == "remove":
-        _add_to_list(task.to_remove, ref)
-        task.freed_size += _get_installed_size(fp_sys, ref)
-    else:
-        _add_to_list(task.to_update, ref)
-
-        current_inst_s = _get_installed_size(fp_sys, ref)
-        remote_dl_s, remote_inst_s = _get_remote_sizes(fp_sys, ref.get_remote_name(), ref)
-
-        task.download_size += remote_dl_s
-
-        if current_inst_s < remote_inst_s:
-            task.install_size += remote_inst_s - current_inst_s
-        else:
-            task.freed_size += current_inst_s - remote_inst_s
-
-def _find_remote_ref_from_list(fp_sys, remote_name, basic_ref, nofail=False):
-    remote_ref = None
-
-    all_refs = fp_sys.list_remote_refs_sync(remote_name, None)
-
-    ref_str = basic_ref.format_ref()
-
-    for ref in all_refs:
-        if ref_str == ref.format_ref():
-            remote_ref = ref
-            break
-
-    if remote_ref == None:
-        try:
-            remote_ref = fp_sys.fetch_remote_ref_sync(remote_name,
-                                                      basic_ref.get_kind(),
-                                                      basic_ref.get_name(),
-                                                      basic_ref.get_arch(),
-                                                      basic_ref.get_branch(),
-                                                      None)
-        except GLib.Error as e:
-            if nofail:
-                remote_ref = Flatpak.RemoteRef(remote_name=remote_name,
-                                               kind=basic_ref.get_kind(),
-                                               arch=basic_ref.get_arch(),
-                                               branch=basic_ref.get_branch(),
-                                               name=basic_ref.get_name(),
-                                               commit=basic_ref.get_commit(),
-                                               collection_id=basic_ref.get_collection_id())
-    return remote_ref
-
-def _get_runtime_ref(fp_sys, remote_name, ref):
-    runtime_ref = None
-    ref_string = None
-
-    try:
-        # Since 0.11.4 a FlatpakRemoteRef contains its metadata, so this
-        # query is unnecessary.
-        try:
-            meta = ref.props.metadata
-
-            if meta == None:
-                raise AttributeError
-        except AttributeError:
-            meta = fp_sys.fetch_remote_metadata_sync(remote_name, ref, None)
-
-        keyfile = GLib.KeyFile.new()
-
-        data = meta.get_data().decode()
-
-        keyfile.load_from_data(data, len(data), GLib.KeyFileFlags.NONE)
-
-        runtime = keyfile.get_string("Application", "runtime")
-        basic_ref = Flatpak.Ref.parse("runtime/%s" % runtime)
-
-        ref_string = basic_ref.format_ref() # for error reporting only
-
-        print("Looking for %s in %s" % (ref_string, remote_name))
-
-        # prefer the same-remote's runtimes
-        try:
-            runtime_ref = _find_remote_ref_from_list(fp_sys, remote_name, basic_ref)
-
-            if runtime_ref:
-                print("Found runtime ref '%s' in remote %s" % (runtime_ref.format_ref(), remote_name))
-        except GLib.Error:
-            pass
-        # if nothing is found, check other remotes
-        if runtime_ref == None:
-            for other_remote in fp_sys.list_remotes():
-                other_remote_name = other_remote.get_name()
-
-                if other_remote_name == remote_name:
-                    continue
-
-                print("Looking for %s in alternate remote %s" % (ref_string, other_remote_name))
-
-                try:
-                    runtime_ref = _find_remote_ref_from_list(fp_sys, other_remote_name, basic_ref)
-                except GLib.Error:
-                    continue
-
-                if runtime_ref:
-                    print("Found runtime ref '%s' in remote %s" % (runtime_ref.format_ref(), other_remote_name))
-                    break
-            if runtime_ref == None:
-                raise Exception("Could not locate runtime '%s' in any registered remotes" % ref_string)
-    except GLib.Error as e:
-        runtime_ref = None
-        raise Exception("Error finding runtimes for flatpak: %s" % e.message)
-
-    return runtime_ref
-
-def _get_remote_related_refs(fp_sys, remote_name, ref):
-    return_refs = []
-
-    try:
-        related_refs = fp_sys.list_remote_related_refs_sync(remote_name,
-                                                            ref.format_ref(),
-                                                            None)
-
-        for related_ref in related_refs:
-            if not related_ref.should_download():
-                continue
-
-            print("Found related ref '%s' in remote %s" % (related_ref.format_ref(), remote_name))
-
-            # Convert to a RemoteRef so that later functions know what remote
-            # this is from.  Related refs should never fail from the given remote,
-            # but if they're no-enumerate (as .flatpakref installs can be) then a listing
-            # will be empty, so we have ..._from_list construct a synthetic one (nofail).
-            remote_ref = _find_remote_ref_from_list(fp_sys, remote_name, related_ref, nofail=True)
-
-            return_refs.append(remote_ref)
-    except GLib.Error as e:
-        raise Exception("Could not determine remote related refs for app: %s" % e.message)
-
-    return return_refs
-
-def _get_theme_refs(fp_sys, remote_name, ref=None):
-    if ref:
-        arch = ref.get_arch()
-    else:
-        arch = Flatpak.get_default_arch()
+def _get_system_theme_matches():
+    fp_sys = get_fp_sys()
+    arch = Flatpak.get_default_arch()
 
     theme_refs = []
 
@@ -508,240 +333,345 @@ def _get_theme_refs(fp_sys, remote_name, ref=None):
     for name in (icon_theme, gtk_theme):
         theme_ref = None
 
-        try:
-            print("Looking for theme %s in %s" % (name, remote_name))
-
-            all_refs = fp_sys.list_remote_refs_sync(remote_name, None)
-
-            matching_refs = []
-
-            for listed_ref in all_refs:
-                if listed_ref.get_name() == name:
-                    matching_refs.append(listed_ref)
-
-            if not matching_refs:
+        for remote in fp_sys.list_remotes():
+            if remote.get_nodeps():
                 continue
+            remote_name = remote.get_name()
 
-            # Sort highest version first.
-            matching_refs = sorted(matching_refs, key=sortref, reverse=True)
+            try:
+                print("Looking for theme %s in %s" % (name, remote_name))
 
-            for matching_ref in matching_refs:
-                if matching_ref.get_arch() != arch:
+                all_refs = fp_sys.list_remote_refs_sync(remote_name, None)
+                matching_refs = []
+
+                for listed_ref in all_refs:
+                    if listed_ref.get_name() == name:
+                        matching_refs.append(listed_ref)
+
+                if not matching_refs:
                     continue
 
-                theme_ref = matching_ref
-                print("Found theme ref '%s' in remote %s" % (theme_ref.format_ref(), remote_name))
-                break
+                # Sort highest version first.
+                matching_refs = sorted(matching_refs, key=sortref, reverse=True)
 
-            # if nothing is found, check other remotes
-            if theme_ref == None:
-                for other_remote in fp_sys.list_remotes():
-                    other_remote_name = other_remote.get_name()
-
-                    if other_remote_name == remote_name:
+                for matching_ref in matching_refs:
+                    if matching_ref.get_arch() != arch:
                         continue
 
-                    print("Looking for theme %s in alternate remote %s" % (name, other_remote_name))
+                    theme_ref = matching_ref
+                    print("Found theme ref '%s' in remote %s" % (theme_ref.format_ref(), remote_name))
+                    break
 
-                    all_refs = fp_sys.list_remote_refs_sync(other_remote_name, None)
-
-                    matching_refs = []
-
-                    for listed_ref in all_refs:
-                        if listed_ref.get_name() == name:
-                            matching_refs.append(listed_ref)
-
-                    if not matching_refs:
-                        continue
-
-                    # Sort highest version first.
-                    matching_refs = sorted(matching_refs, key=sortref, reverse=True)
-
-                    for matching_ref in matching_refs:
-                        if matching_ref.get_arch() != arch:
-                            continue
-
-                        theme_ref = matching_ref
-                        print("Found theme ref '%s' in alternate remote %s" % (theme_ref.format_ref(), other_remote_name))
-                        break
-
-                    if theme_ref:
-                        break
-                if theme_ref == None:
-                    debug("Could not locate theme '%s' in any registered remotes" % name)
-        except GLib.Error as e:
-            theme_ref = None
-            debug("Error finding themes for flatpak: %s" % e.message)
+            except GLib.Error as e:
+                theme_ref = None
+                debug("Error finding themes for flatpak: %s" % e.message)
 
         if theme_ref:
             theme_refs.append(theme_ref)
 
     return theme_refs
 
-def get_updated_theme_refs():
-    fp_sys = get_fp_sys()
-
-    if not fp_sys.list_installed_refs_by_kind(Flatpak.RefKind.APP, None):
-        return []
-
-    theme_refs = []
-
-    for remote in fp_sys.list_remotes():
-        theme_refs += _get_theme_refs (fp_sys, remote.get_name())
-
-    return theme_refs
-
-
-def _get_installed_related_refs(fp_sys, remote, ref):
+def _get_installed_related_refs(remote, ref_str):
     return_refs = []
 
-    try:
-        related_refs = fp_sys.list_installed_related_refs_sync(remote,
-                                                               ref.format_ref(),
-                                                               None)
-    except GLib.Error as e:
-        raise Exception("Could not determine installed refs for app: %s" % e.message)
+    related_refs = get_fp_sys().list_installed_related_refs_sync(remote,
+                                                                 ref_str,
+                                                                 None)
 
     return related_refs
 
-def select_updates(task):
-    thread = threading.Thread(target=_select_updates_thread, args=(task,))
-    thread.start()
-
-def _select_updates_thread(task):
-    fp_sys = get_fp_sys()
-
-    try:
-        updates = fp_sys.list_installed_refs_for_update(None)
-    except GLib.Error as e:
-        task.info_ready_status = task.STATUS_BROKEN
-        task.error_message = str(e)
-        dialogs.show_flatpak_error(task.error_message)
-        if task.info_ready_callback:
-            GObject.idle_add(task.info_ready_callback, task)
-        return
-
-    for ref in updates:
-        _add_ref_to_task(fp_sys, task, ref, needs_update=True)
-
-    if len(task.to_update) > 0:
-        print("flatpaks that can be updated:")
-        for ref in task.to_update:
-            print(ref.format_ref())
-
-        task.info_ready_status = task.STATUS_OK
-        task.execute = execute_transaction
-    else:
-        print("no updated flatpaks")
-
-    if task.info_ready_callback:
-        GObject.idle_add(task.info_ready_callback, task)
-
 def select_packages(task):
-    method = None
-
-    if task.type == "install":
-        method = _pick_refs_for_installation
-    else:
-        method = _pick_refs_for_removal
+    task.transaction = FlatpakTransaction(task)
 
     print("Installer: Calculating changes required for Flatpak package: %s" % task.pkginfo.name)
 
-    thread = threading.Thread(target=method, args=(task,))
-    thread.start()
+def select_updates(task):
+    task.transaction = FlatpakTransaction(task)
 
-def _pick_refs_for_installation(task):
-    fp_sys = get_fp_sys()
+    print("Installer: Calculating Flatpak updates.")
 
-    pkginfo = task.pkginfo
-    refid = pkginfo.refid
+class FlatpakTransaction():
+    def __init__(self, task):
+        self.task = task
+        self.transaction = Flatpak.Transaction.new_for_installation(get_fp_sys(), task.cancellable)
+        self.item_count = 0
+        self.current_count = 0
 
-    ref = Flatpak.Ref.parse(refid)
-    remote_name = pkginfo.remote
+        self.transaction_ready = False
+        self.current_fp_progress = None
+        self.op_error = None
 
-    try:
-        remote_ref = _find_remote_ref_from_list(fp_sys, remote_name, ref, nofail=True)
-        print("Selected ref to install: '%s' in remote %s" % (remote_ref.format_ref(), remote_name))
+        self.start_transaction = threading.Event()
 
-        _add_ref_to_task(fp_sys, task, remote_ref)
-        update_list = fp_sys.list_installed_refs_for_update(None)
+        self.transaction.connect("ready", self.on_transaction_ready)
+        self.transaction.connect("new-operation", self._new_operation)
+        self.transaction.connect("operation-done", self._operation_done)
+        self.transaction.connect("operation-error", self._operation_error)
+        self.transaction.connect("end-of-lifed-with-rebase", self._ref_eoled_with_rebase)
 
-        runtime_ref = _get_runtime_ref(fp_sys, remote_name, remote_ref)
+        thread = threading.Thread(target=self._transaction_thread)
+        thread.start()
 
-        if not _is_ref_installed(fp_sys, runtime_ref):
-            _add_ref_to_task(fp_sys, task, runtime_ref)
-        else:
-            if runtime_ref in update_list:
-                _add_ref_to_task(fp_sys, task, runtime_ref, needs_update=True)
+    def _transaction_thread(self):
+        try:
+            if self.task.type == "install":
+                self.transaction.add_install(self.task.pkginfo.remote,
+                                             self.task.pkginfo.refid,
+                                             None)
+            elif self.task.type == "remove":
+                self.transaction.add_uninstall(self.task.pkginfo.refid)
 
-        all_related_refs = _get_remote_related_refs(fp_sys, remote_ref.get_remote_name(), remote_ref)
-        all_related_refs += _get_remote_related_refs(fp_sys, runtime_ref.get_remote_name(), runtime_ref)
-        all_related_refs += _get_theme_refs(fp_sys, runtime_ref.get_remote_name(), runtime_ref)
-
-        for related_ref in all_related_refs:
-            if not _is_ref_installed(fp_sys, related_ref):
-                _add_ref_to_task(fp_sys, task, related_ref)
+                for related_ref in _get_installed_related_refs(self.task.pkginfo.remote, self.task.pkginfo.refid):
+                    self.transaction.add_uninstall(related_ref.format_ref())
             else:
-                if related_ref in update_list:
-                    _add_ref_to_task(fp_sys, task, related_ref, needs_update=True)
+                try:
+                    if self.task.initial_refs_to_update != []:
+                        for ref in self.task.initial_refs_to_update:
+                            self.transaction.add_update(ref, None, None)
+                    else:
+                        for ref in get_fp_sys().list_installed_refs(self.task.cancellable):
+                            self.transaction.add_update(ref.format_ref(), None, None)
+                except GLib.Error as e:
+                    print("Problem checking installed flatpaks updates: %s" % e.message)
+                    raise
 
-    except Exception as e:
-        # Something went wrong, bail out
-        task.info_ready_status = task.STATUS_BROKEN
-        task.error_message = str(e)
-        dialogs.show_flatpak_error(task.error_message)
-        if task.info_ready_callback:
-            GObject.idle_add(task.info_ready_callback, task)
-        return
 
-    print("For installation:")
-    for ref in task.to_install:
-        print(ref.format_ref())
+            # Always install the corresponding theme if we didn't already
+            # have it.
+            if self.task.type != "remove":
+                if self.task.asapp is not None and self.task.asapp.get_kind() != AppStreamGlib.AppKind.ADDON:
+                    for theme_ref in _get_system_theme_matches():
+                        try:
+                            self.transaction.add_install(theme_ref.get_remote_name(),
+                                                         theme_ref.format_ref(),
+                                                         None)
+                        except GLib.Error as e:
+                            if e.code == Flatpak.Error.ALREADY_INSTALLED:
+                                continue
+                            else:
+                                raise
 
-    task.info_ready_status = task.STATUS_OK
-    task.execute = execute_transaction
+            # Simulate the install, cancel once ops are generated.
 
-    if task.info_ready_callback:
-        GObject.idle_add(task.info_ready_callback, task)
+        except GLib.Error as e:
+            self.on_transaction_error(e)
 
-def _pick_refs_for_removal(task):
-    fp_sys = get_fp_sys()
 
-    pkginfo = task.pkginfo
+        try:
+            self.transaction.run(self.task.cancellable)
+        except GLib.Error as e:
+            self.on_transaction_error(e)
 
-    try:
-        ref = fp_sys.get_installed_ref(pkginfo.kind,
-                                       pkginfo.name,
-                                       pkginfo.arch,
-                                       pkginfo.branch,
-                                       None)
+        self.on_transaction_finished()
 
-        remote = ref.get_origin()
+    def on_transaction_error(self, error):
+        if not self.op_error:
+            if error.code in (Flatpak.Error.ABORTED, Gio.IOErrorEnum.CANCELLED):
+                return
 
-        _add_ref_to_task(fp_sys, task, ref)
+        if not self.transaction_ready:
+            self.task.handle_error(error, info_stage=True)
+        else:
+            if self.op_error:
+                self.task.handle_error(self.op_error)
+            else:
+                self.task.handle_error(error)
 
-        related_refs = _get_installed_related_refs(fp_sys, remote, ref)
+    def on_transaction_finished(self):
+        get_fp_sys().drop_caches(None)
 
-        for related_ref in related_refs:
-            if _is_ref_installed(fp_sys, related_ref) and related_ref.should_delete():
-                _add_ref_to_task(fp_sys, task, related_ref)
+        if self.task.error_message:
+            self.task.call_error_cleanup_callback()
+        else:
+            self.task.call_finished_cleanup_callback()
 
-    except Exception as e:
-        task.info_ready_status = task.STATUS_BROKEN
-        task.error_message = str(e)
-        dialogs.show_flatpak_error(task.error_message)
-        GObject.idle_add(task.info_ready_callback, task)
-        return
+    def on_transaction_progress(self, progress):
+        package_chunk_size = 1.0 / self.item_count
+        partial_chunk = (progress.get_progress() / 100.0) * package_chunk_size
+        actual_progress = math.floor(((self.current_count * package_chunk_size) + partial_chunk) * 100.0)
+        if self.task.client_progress_cb:
+            GLib.idle_add(self.task.client_progress_cb,
+                          self.task.pkginfo,
+                          actual_progress,
+                          progress.get_is_estimating(),
+                          progress.get_status(),
+                          priority=GLib.PRIORITY_DEFAULT)
 
-    print("For removal:")
-    for ref in task.to_remove:
-        print(ref.format_ref())
+    def _new_operation(self, transaction, op, progress):
+        progress.set_update_frequency(500)
+        progress.connect("changed", self.on_transaction_progress)
 
-    task.info_ready_status = task.STATUS_OK
-    task.execute = execute_transaction
+    def _operation_error(self, transaction, operation, error, details):
+        # Set error from the failing operation - Overall transaction errors from real failure
+        # use the same ABORTED code.
+        # The op error will be more specific and useful (and let us distinguish cancel from fail).
+        self.op_error = error
+        return False
 
-    if task.info_ready_callback:
-        GObject.idle_add(task.info_ready_callback, task)
+    def _operation_done(self, transaction, operation, commit, result, data=None):
+        self.current_count += 1
+        if self.current_count < self.item_count:
+            return
+
+    def on_transaction_ready(self, transaction):
+        self.transaction_ready = True
+
+        try:
+            fp_sys = get_fp_sys()
+
+            dl_size = 0
+            disk_size = 0
+
+            for op in self.transaction.get_operations():
+                ref = Flatpak.Ref.parse(op.get_ref())
+                op_type = op.get_operation_type()
+
+                if op_type == Flatpak.TransactionOperationType.INSTALL:
+                    dl_size += op.get_download_size()
+                    disk_size += op.get_installed_size()
+                    self._add_to_list(self.task.to_install, ref)
+                elif op_type == Flatpak.TransactionOperationType.UNINSTALL:
+                    iref = fp_sys.get_installed_ref(ref.get_kind(),
+                                                    ref.get_name(),
+                                                    ref.get_arch(),
+                                                    ref.get_branch(),
+                                                    None)
+
+                    disk_size -= iref.get_installed_size()
+                    self._add_to_list(self.task.to_remove, ref)
+                else: # update
+                    iref = fp_sys.get_installed_ref(ref.get_kind(),
+                                                    ref.get_name(),
+                                                    ref.get_arch(),
+                                                    ref.get_branch(),
+                                                    None)
+
+                    current_installed_size = iref.get_installed_size()
+                    new_installed_size = op.get_installed_size()
+                    dl_size += op.get_download_size()
+                    disk_size += new_installed_size - current_installed_size
+
+                    self._add_to_list(self.task.to_update, ref)
+
+            self.task.download_size = dl_size
+            if disk_size > 0:
+                self.task.install_size = disk_size
+            else:
+                self.task.freed_size = abs(disk_size)
+
+        except Exception as e:
+            # Something went wrong, bail out
+            self.task.info_ready_status = self.task.STATUS_BROKEN
+            self.task.handle_error(e)
+            return False # Close 'ready' callback, cancel.
+
+        if len(self.task.to_install) > 0:
+            print("For install:")
+            for ref in self.task.to_install:
+                print(ref.format_ref())
+        if len(self.task.to_remove) > 0:
+            print("For removal:")
+            for ref in self.task.to_remove:
+                print(ref.format_ref())
+        if len(self.task.to_update) > 0:
+            print("For updating:")
+            for ref in self.task.to_update:
+                print(ref.format_ref())
+
+        self.item_count = len(self.task.to_install + self.task.to_remove + self.task.to_update)
+
+        self.task.info_ready_status = self.task.STATUS_OK
+        self.task.confirm = self._confirm_transaction
+        self.task.cancel = self._cancel_transaction
+        self.task.execute = self._execute_transaction
+        self.task.call_info_ready_callback()
+
+        self.start_transaction.wait()
+
+        if self.task.cancellable.is_cancelled():
+            return False
+
+        return True
+
+    def _ref_eoled_with_rebase(self, transaction, remote, ref, reason, rebased_to_ref, prev_ids):
+        # skip
+        # transaction.add_uninstall(ref)
+        # transaction.add_rebase(rebased_to_ref)
+        return True
+
+    def _add_to_list(self, ref_list, ref):
+        ref_str = ref.format_ref()
+
+        for existing_ref in ref_list:
+            if ref_str == existing_ref.format_ref():
+                debug("Skipping %s, already added to task" % ref_str)
+                return
+
+        ref_list.append(ref)
+
+    def _get_runtime_ref_from_remote_metadata(self, remote_name, ref_str):
+        runtime_ref = None
+
+        ref = Flatpak.Ref.parse(ref_str)
+
+        meta = get_fp_sys().fetch_remote_metadata_sync(remote_name, ref, None)
+        data = meta.get_data().decode()
+
+        keyfile = GLib.KeyFile.new()
+        keyfile.load_from_data(data, len(data), GLib.KeyFileFlags.NONE)
+
+        runtime = keyfile.get_string("Application", "runtime")
+        runtime_ref = Flatpak.Ref.parse("runtime/%s" % runtime)
+
+        return runtime_ref.format_ref()
+
+    def _confirm_transaction(self):
+        # only show a confirmation if:
+        # - (install/remove) Additional changes are triggered for more than just the selected package.
+        # - we're updating all available packages
+        # - the packages specifically selected to be updated (initial_refs_to_update) trigger additional package installs/updates/removals
+        total_count = len(self.task.to_install + self.task.to_remove + self.task.to_update)
+        additional = False
+
+        if self.task.type in (self.task.INSTALL_TASK, self.task.UNINSTALL_TASK) and total_count > 1:
+            additional = True
+        elif self.task.type == self.task.UPDATE_TASK:
+            if len(self.task.initial_refs_to_update) == 0 or (total_count - len(self.task.initial_refs_to_update)) > 0:
+                additional = True
+
+        if additional:
+            Gdk.threads_enter()
+            dia = ChangesConfirmDialog(None, self.task, parent=self.task.parent_window)
+            res = dia.run()
+            dia.hide()
+            dia.destroy()
+            Gdk.threads_leave()
+            return res == Gtk.ResponseType.OK
+        else:
+            return True
+
+    def _cancel_transaction(self):
+        self.task.cancellable.cancel()
+        self.start_transaction.set()
+
+    def _execute_transaction(self):
+        if self.task.cancellable.is_cancelled():
+            return False
+
+        if self.task.client_progress_cb != None:
+            self.task.has_window = True
+            GLib.idle_add(self.task.client_progress_cb, self.task.pkginfo, 0, True, " : ", priority=GLib.PRIORITY_DEFAULT)
+        else:
+            GLib.idle_add(self._show_progress_window, self.task, priority=GLib.PRIORITY_DEFAULT)
+
+        self.start_transaction.set()
+
+    def _show_progress_window(self, task):
+        progress_window = FlatpakProgressWindow(self.task)
+        progress_window.present()
+
+    def get_operations(self):
+        return self.transaction.get_operations()
 
 def list_updated_pkginfos(cache):
     fp_sys = get_fp_sys()
@@ -764,6 +694,14 @@ def list_updated_pkginfos(cache):
 
     return updated
 
+def get_updated_theme_refs():
+    fp_sys = get_fp_sys()
+
+    if not fp_sys.list_installed_refs_by_kind(Flatpak.RefKind.APP, None):
+        return []
+
+    return _get_system_theme_matches()
+
 def find_pkginfo(cache, string):
     for key in cache.get_subset_of_type("f").keys():
         candidate = cache[key]
@@ -780,7 +718,7 @@ def generate_uncached_pkginfos(cache):
         for remote in fp_sys.list_remotes():
             remote_name = remote.get_name()
 
-            for ref in fp_sys.list_installed_refs_by_kind(Flatpak.RefKind.APP, None):
+            for ref in fp_sys.list_installed_refs(None):
                 # All remotes will see installed refs, but the installed refs will always
                 # report their correct origin, so only add installed refs when they match the remote.
                 if ref.get_origin() == remote_name:
@@ -844,6 +782,8 @@ def _pkginfo_from_file_thread(cache, file, callback):
         b = contents.encode("utf-8")
         gb = GLib.Bytes(b)
 
+        new_remote = False
+
         try:
             kf = GLib.KeyFile()
             if kf.load_from_file(path, GLib.KeyFileFlags.NONE):
@@ -873,6 +813,7 @@ def _pkginfo_from_file_thread(cache, file, callback):
                         fp_sys.drop_caches(None)
 
                         remote_name = ref.get_remote_name()
+                        new_remote = True
                         print("Installer: flatpak - added remote '%s'" % remote_name)
                     except GLib.Error as e:
                         if e.code != Gio.DBusError.ACCESS_DENIED: # user cancelling auth prompt for adding a remote
@@ -886,8 +827,11 @@ def _pkginfo_from_file_thread(cache, file, callback):
             try:
                 remote = fp_sys.get_remote_by_name(remote_name, None)
 
-                # Add the ref's remote if it doesn't already exist
-                _process_remote(cache, fp_sys, remote, Flatpak.get_default_arch())
+                # We only process if it's not a new remote, otherwise our appstream data
+                # will be out of sync with our package cache until we refresh the cache. This
+                # can affect versioning especially.
+                if new_remote:
+                    _process_remote(cache, fp_sys, remote, Flatpak.get_default_arch())
 
                 # Add the ref to the cache, so we can work with it like any other in mintinstall
                 pkginfo = _add_package_to_cache(cache, ref, remote.get_url(), False)
@@ -1028,145 +972,53 @@ def _get_repofile_repo_url(path):
 
     return None
 
-def execute_transaction(task):
-    if len(task.to_install + task.to_remove + task.to_update) > 1:
-        dia = ChangesConfirmDialog(None, task, parent=task.parent_window)
-        res = dia.run()
-        dia.hide()
-        if res != Gtk.ResponseType.OK:
-            GObject.idle_add(task.finished_cleanup_cb, task)
-            return
 
-    if task.client_progress_cb != None:
-        task.has_window = True
-    else:
-        progress_window = FlatpakProgressWindow(task)
-        progress_window.present()
 
-    thread = threading.Thread(target=_execute_transaction_thread, args=(task,))
-    thread.start()
+# From flatpak-dir-private.h
+"""
+/**
+ * FLATPAK_DEPLOY_DATA_GVARIANT_FORMAT:
+ *
+ * s - origin
+ * s - commit
+ * as - subpaths
+ * t - installed size
+ * a{sv} - Metadata
+ */
+"""
+FLATPAK_DEPLOY_DATA_GVARIANT_STRING = "(ssasta{sv})"
+FLATPAK_DEPLOY_DATA_GVARIANT_FORMAT = GLib.VariantType(FLATPAK_DEPLOY_DATA_GVARIANT_STRING)
 
-def _execute_transaction_thread(task):
-    GLib.idle_add(task.client_progress_cb, task.pkginfo, 0, True, priority=GLib.PRIORITY_DEFAULT)
+def _load_deploy_data(installed_ref):
+    deploy_dir = Gio.File.new_for_path(installed_ref.get_deploy_dir())
 
-    fp_sys = get_fp_sys()
+    data_file = deploy_dir.get_child("deploy")
 
-    task.transaction = MetaTransaction(fp_sys, task)
+    try:
+        contents, etag = data_file.load_bytes(None)
+    except GLib.Error as e:
+        print("Could not load deploy data: %s" % e.message)
+        return None
 
-class MetaTransaction():
-    def __init__(self, fp_sys, task):
-        self.fp_sys = fp_sys
-        self.task = task
-        pkginfo = self.pkginfo = task.pkginfo
+    deploy_data = GLib.Variant.new_from_bytes(FLATPAK_DEPLOY_DATA_GVARIANT_FORMAT, contents, False)
 
-        task.to_install.reverse()
+    return deploy_data
 
-        self.item_count = len(task.to_install + task.to_remove + task.to_update)
-        self.current_count = 0
+def _get_deployed_version(pkginfo):
+    iref = get_fp_sys().get_installed_ref(pkginfo.kind,
+                                          pkginfo.name,
+                                          pkginfo.arch,
+                                          pkginfo.branch,
+                                          None)
 
-        for ref in task.to_install:
-            task.progress_state = task.PROGRESS_STATE_INSTALLING
-            task.current_package_name = ref.get_name()
+    if not iref:
+        return None
 
-            print("installing: %s" % ref.format_ref())
-            try:
-                self.fp_sys.install(ref.get_remote_name(),
-                                    ref.get_kind(),
-                                    ref.get_name(),
-                                    ref.get_arch(),
-                                    ref.get_branch(),
-                                    self.on_flatpak_progress,
-                                    None,
-                                    task.cancellable)
-            except GLib.Error as e:
-                if task.current_package_name == task.pkginfo.name:
-                    if e.code != Gio.IOErrorEnum.CANCELLED:
-                        task.progress_state = task.PROGRESS_STATE_FAILED
-                        task.current_package_name = None
-                        self.on_flatpak_error(e.message)
-                        return
-                else:
-                    print("Installer: flatpak - problem installing %s: %s" % (task.current_package_name, e.message))
+    return iref.get_appdata_version()
 
-            self.current_count += 1
+    # data = _load_deploy_data(iref)
 
-        for ref in task.to_remove:
-            task.progress_state = task.PROGRESS_STATE_REMOVING
-            task.current_package_name = ref.get_name()
-
-            print("removing: %s" % ref.format_ref())
-            try:
-                self.fp_sys.uninstall(ref.get_kind(),
-                                      ref.get_name(),
-                                      ref.get_arch(),
-                                      ref.get_branch(),
-                                      self.on_flatpak_progress,
-                                      None,
-                                      task.cancellable)
-            except GLib.Error as e:
-                if task.current_package_name == task.pkginfo.name:
-                    if e.code != Gio.IOErrorEnum.CANCELLED:
-                        task.progress_state = task.PROGRESS_STATE_FAILED
-                        task.current_package_name = None
-                        self.on_flatpak_error(e.message)
-                        return
-                else:
-                    print("Installer: flatpak - problem removing %s: %s" % (task.current_package_name, e.message))
-
-            self.current_count += 1
-
-        for ref in task.to_update:
-            task.progress_state = task.PROGRESS_STATE_UPDATING
-            task.current_package_name = ref.get_name()
-
-            print("updating: %s" % ref.format_ref())
-            try:
-                self.fp_sys.update(Flatpak.UpdateFlags.NONE,
-                                   ref.get_remote_name(),
-                                   ref.get_kind(),
-                                   ref.get_name(),
-                                   ref.get_arch(),
-                                   ref.get_branch(),
-                                   self.on_flatpak_progress,
-                                   None,
-                                   task.cancellable)
-            except GLib.Error as e:
-                # update will None as a task's pkginfo, just warn.
-                print("Installer: flatpak - problem updating %s: %s" % (task.current_package_name, e.message))
-
-            self.current_count += 1
-
-        task.progress_state = task.PROGRESS_STATE_FINISHED
-        task.current_package_name = None
-        self.on_flatpak_finished()
-
-    def on_flatpak_progress(self, status, progress, estimating, data=None):
-        # Simple for now, each package gets an equal slice, and package progress is a percentage of that slice
-
-        package_chunk_size = 1.0 / self.item_count
-        partial_chunk = (progress / 100.0) * package_chunk_size
-
-        actual_progress = math.floor(((self.current_count * package_chunk_size) + partial_chunk) * 100.0)
-
-        GLib.idle_add(self.task.client_progress_cb,
-                      self.task.pkginfo,
-                      actual_progress,
-                      estimating,
-                      priority=GLib.PRIORITY_DEFAULT)
-
-    def on_flatpak_error(self, error_details):
-        self.task.error_message = error_details
-
-        # Show an error popup only if we're in mintinstall, otherwise a flatpak
-        # progress window will show the error details
-        if self.task.has_window:
-            dialogs.show_flatpak_error(error_details)
-
-        GLib.idle_add(self.task.error_cleanup_cb, self.task)
-
-    def on_flatpak_finished(self):
-        self.fp_sys.drop_caches(None)
-
-        GLib.idle_add(self.task.finished_cleanup_cb, self.task)
-
+    # metadata = data.get_child_value(4)
+    # version_var =  metadata.lookup_value("appdata-version", None)
+    # return version_var.get_string()
 

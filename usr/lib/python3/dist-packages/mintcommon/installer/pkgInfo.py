@@ -38,7 +38,8 @@ class PkgInfo:
         self.version = None
         self.icon = None
         self.screenshots = []
-        self.url = None
+        self.homepage_url = None
+        self.help_url = None
 
         # Runtime categories
         self.categories = []
@@ -93,8 +94,6 @@ class AptPkgInfo(PkgInfo):
             summary = ""
             if candidate.summary is not None:
                 summary = candidate.summary
-                summary = summary.replace("<", "&lt;")
-                summary = summary.replace("&", "&amp;")
 
                 self.summary = capitalize(summary)
 
@@ -169,21 +168,24 @@ class AptPkgInfo(PkgInfo):
 
         return self.version
 
-    def get_url(self, apt_pkg=None):
-        if self.url:
-            return self.url
+    def get_homepage_url(self, apt_pkg=None):
+        if self.homepage_url:
+            return self.homepage_url
 
         if apt_pkg:
             if apt_pkg.is_installed:
-                self.url = apt_pkg.installed.homepage
+                self.homepage_url = apt_pkg.installed.homepage
             else:
-                self.url = apt_pkg.candidate.homepage
+                self.homepage_url = apt_pkg.candidate.homepage
 
-        if self.url == None:
-            self.url = ""
+        if self.homepage_url == None:
+            self.homepage_url = ""
 
-        return self.url
+        return self.homepage_url
 
+    def get_help_url(self, apt_pkg=None):
+        # We can only get the homepage from apt
+        return ""
 
 class FlatpakPkgInfo(PkgInfo):
     def __init__(self, pkg_hash=None, remote=None, ref=None, remote_url=None, installed=False):
@@ -195,6 +197,8 @@ class FlatpakPkgInfo(PkgInfo):
         self.name = ref.get_name() # org.foo.Bar
         self.remote = remote # "flathub"
         self.remote_url = remote_url
+
+        self.installed = installed
 
         self.refid = ref.format_ref() # app/org.foo.Bar/x86_64/stable
         self.kind = ref.get_kind() # Will be app for now
@@ -324,57 +328,20 @@ class FlatpakPkgInfo(PkgInfo):
             return self.screenshots
 
         if as_component:
-            screenshots = as_component.get_screenshots()
-
-            for ss in screenshots:
-                images = ss.get_images()
-
-                if len(images) == 0:
-                    continue
-
-                # FIXME: there must be a better way.  Finding an optimal size to use without just
-                # resorting to an original source.
-
-                best = None
-                largest = None
-
-                for image in images:
-                    if image.get_kind() == AppStreamGlib.ImageKind.SOURCE:
-                        continue
-
-                    w = image.get_width()
-
-                    if w > 500 and w < 625:
-                        best = image
-                        break
-
-                    if w > 625:
-                        continue
-
-                    if largest == None or (largest != None and largest.get_width() < w):
-                        largest = image
-
-                if best == None and largest == None:
-                    continue
-
-                if best == None:
-                    best = largest
-
-                if ss.get_kind() == AppStreamGlib.ScreenshotKind.DEFAULT:
-                    self.screenshots.insert(0, best.get_url())
-                else:
-                    self.screenshots.append(best.get_url())
+            self.screenshots = as_component.get_screenshots()
 
         return self.screenshots
 
     def get_version(self, as_component=None):
         if self.version:
+            # as_component.get_release_default().get_version()
             return self.version
 
         if as_component:
             releases = as_component.get_releases()
 
             if len(releases) > 0:
+                releases.sort(key=lambda r: r.get_timestamp(), reverse=True)
                 version = releases[0].get_version()
 
                 if version:
@@ -385,16 +352,30 @@ class FlatpakPkgInfo(PkgInfo):
 
         return self.version
 
-    def get_url(self, as_component=None):
-        if self.url:
-            return self.url
+    def get_homepage_url(self, as_component=None):
+        if self.homepage_url:
+            return self.homepage_url
 
         if as_component:
             url = as_component.get_url_item(AppStreamGlib.UrlKind.HOMEPAGE)
+
             if url != None:
-                self.url = url
+                self.homepage_url = url
 
-        if self.url == None:
-            self.url = self.remote_url
+        return self.homepage_url
 
-        return self.url
+    def get_help_url(self, as_component=None):
+        if self.help_url:
+            return self.help_url
+
+        if as_component:
+            url = as_component.get_url_item(AppStreamGlib.UrlKind.HELP)
+
+            if url != None:
+                self.help_url = url
+
+        if self.help_url == None:
+            self.help_url = ""
+
+        return self.help_url
+
