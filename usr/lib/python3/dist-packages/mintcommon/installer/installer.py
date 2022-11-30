@@ -451,12 +451,12 @@ class Installer:
         """
         return _flatpak.list_updated_pkginfos(self.cache)
 
-    def find_pkginfo(self, name, pkg_type=PKG_TYPE_ALL):
+    def find_pkginfo(self, name, pkg_type=PKG_TYPE_ALL, remote=None):
         """
         Attempts to find and return a PkgInfo object, given a package name.  If
         pkg_type is None, looks in first apt, then flatpaks.
         """
-        return self.cache.find_pkginfo(name, pkg_type)
+        return self.cache.find_pkginfo(name, pkg_type, remote)
 
     def get_pkginfo_from_ref_file(self, file, ready_callback):
         """
@@ -489,6 +489,14 @@ class Installer:
             return _flatpak.list_remotes()
         else:
             return []
+
+    def get_remote_info_for_name(self, remote_name):
+        if self.have_flatpak:
+            for remote in _flatpak.list_remotes():
+                if remote.name == remote_name:
+                    return remote
+
+        return []
 
     def pkginfo_is_installed(self, pkginfo):
         """

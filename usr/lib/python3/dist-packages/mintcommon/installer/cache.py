@@ -276,7 +276,7 @@ class PkgCache(object):
     def force_new_cache(self):
         self._new_cache_common()
 
-    def find_pkginfo(self, string, pkg_type=None):
+    def find_pkginfo(self, string, pkg_type=None, remote=None):
         if pkg_type in (None, "a"):
             pkginfo = _apt.find_pkginfo(self, string)
 
@@ -285,8 +285,7 @@ class PkgCache(object):
 
         if self.have_flatpak:
             if pkg_type in (None, "f"):
-                pkginfo = _flatpak.find_pkginfo(self, string)
-
+                pkginfo = _flatpak.find_pkginfo(self, string, remote)
                 if pkginfo != None:
                     return pkginfo
 

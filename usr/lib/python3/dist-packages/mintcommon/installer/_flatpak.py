@@ -33,15 +33,18 @@ class FlatpakRemoteInfo():
         if remote:
             self.name = remote.get_name()
             self.title = remote.get_title()
+            self.summary = remote.get_comment()
             self.url = remote.get_url()
             self.disabled = remote.get_disabled()
             self.noenumerate = remote.get_noenumerate()
-
             if not self.title or self.title == "":
-                self.title = self.name.capitalize()
+                self.title = " ".join( [word for word in self.name.split("-")])
+
+            self.title = self.title.title()
         else:
             self.name = None
             self.title = None
+            self.summary = None
             self.url = None
             self.disabled = False
             self.noenumerate = False
@@ -129,19 +132,13 @@ def _process_remote(cache, fp_sys, remote, arch):
 
     try:
         for ref in fp_sys.list_remote_refs_sync(remote_name, None):
-            name = ref.get_name()
-
-            if ".Plugin" in name:
-                continue
-            if ".Extension" in name:
+            if ref.get_kind() == Flatpak.RefKind.RUNTIME:
                 continue
 
             if ref.get_name().endswith("BaseApp"):
                 continue
 
-            if ref.get_name().endswith("Sdk"):
-                continue
-            if ref.get_name().endswith("Platform"):
+            if ref.get_name().endswith("BaseExtension"):
                 continue
 
             if ref.get_arch() != arch:
@@ -206,14 +203,19 @@ def process_full_flatpak_installation(cache):
 
     return cache, flatpak_remote_infos
 
-def _load_appstream_pool(pools, remote):
+def _load_appstream_pool(remote):
     pool = AppStreamGlib.Store()
-    path = remote.get_appstream_dir().get_path()
 
-    with open(os.path.join(path, "appstream.xml")) as f:
-        pool.from_xml(f.read(), path)
+    try:
+        path = remote.get_appstream_dir().get_path()
 
-    pools[remote.get_name()] = pool
+        with open(os.path.join(path, "appstream.xml")) as f:
+            pool.from_xml(f.read(), path)
+    except Exception as e:
+        print("Could not load appstream info for remote '%s': %s" % (remote, str(e)))
+        return
+
+    _as_pools[remote.get_name()] = pool
 
 def initialize_appstream():
     thread = threading.Thread(target=_initialize_appstream_thread)
@@ -230,7 +232,7 @@ def _initialize_appstream_thread():
 
         try:
             for remote in fp_sys.list_remotes():
-                _load_appstream_pool(_as_pools, remote)
+                _load_appstream_pool(remote)
         except (GLib.Error, Exception) as e:
             try:
                 msg = e.message
@@ -288,17 +290,25 @@ def create_pkginfo_from_as_component(comp, remote_name, remote_url):
     return pkginfo
 
 def search_for_pkginfo_as_component(pkginfo):
-    name = pkginfo.name
+    asapps = _search_as_pool_by_name(pkginfo.name, pkginfo.remote)
 
+    if asapps is None:
+        return None
+
+    for app in asapps:
+        bundle = app.get_bundle_default()
+        if pkginfo.refid == bundle.get_id():
+            return app
+
+    return None
+
+def _search_as_pool_by_name(name, remote):
     comps = []
-
-    global _as_pools
-    global _as_pool_lock
 
     with _as_pool_lock:
         try:
-            pool = _as_pools[pkginfo.remote]
-        except Exception:
+            pool = _as_pools[remote]
+        except Exception as e:
             return None
 
         comps = pool.get_apps_by_id(name)
@@ -307,7 +317,7 @@ def search_for_pkginfo_as_component(pkginfo):
             comps = pool.get_apps_by_id(name + ".desktop")
 
     if len(comps) > 0:
-        return comps[0]
+        return comps
     else:
         return None
 
@@ -702,12 +712,14 @@ def get_updated_theme_refs():
 
     return _get_system_theme_matches()
 
-def find_pkginfo(cache, string):
+def find_pkginfo(cache, string, remote=None):
     for key in cache.get_subset_of_type("f").keys():
         candidate = cache[key]
-
         if string == candidate.name:
-            return candidate
+            if remote is None:
+                return candidate
+            elif candidate.remote == remote:
+                return candidate
 
     return None
 
