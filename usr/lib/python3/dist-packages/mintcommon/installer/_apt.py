@@ -18,9 +18,6 @@ from .dialogs import ChangesConfirmDialog
 from .misc import check_ml
 from . import dialogs
 
-# List of packages which are either broken or do not install properly in mintinstall
-BROKEN_PACKAGES = ['pepperflashplugin-nonfree']
-
 # List extra packages that aren't necessarily marked in their control files, but
 # we know better...
 CRITICAL_PACKAGES = ["mint-common", "mint-meta-core", "mintdesktop", "python3"]
@@ -97,6 +94,8 @@ def process_full_apt_cache(cache):
         if name.endswith("-perl"):
             continue
         if name == "snapd":
+            continue
+        if name == "pepperflashplugin-nonfree": # formerly marked broken, it's now a dummy and has no dependents (and only exists in Mint 20).
             continue
         if ":" in name and name.split(":")[0] in keys:
             continue
@@ -198,11 +197,6 @@ class MetaTransaction(packagekit.Task):
 
         self.set_simulate(True)
 
-        if self._is_critical_package(apt_pkg):
-            self.task.info_ready_status = self.task.STATUS_FORBIDDEN
-            self.task.call_info_error_callback()
-            return
-
         try:
             if self.task.type == "remove":
                 results = self.remove_packages_sync(
@@ -235,8 +229,9 @@ class MetaTransaction(packagekit.Task):
 
         # it thinks it's a PkClientError but it's really PkErrorEnum
         # the GError code is set to 0xFF + code
-        if error.code >= 0x255:
-            real_code = error.code - 0x255
+        real_code = error.code
+        if error.code >= 0xFF:
+            real_code = error.code - 0xFF
 
             if real_code == packagekit.ErrorEnum.NOT_AUTHORIZED:
                 # Silently ignore auth failures or cancellation.
@@ -246,8 +241,10 @@ class MetaTransaction(packagekit.Task):
             # user navigated away before simulation was complete, etc...
             return
 
-        self.task.progress_state = self.task.PROGRESS_STATE_FAILED
-        dialogs.show_error(error.message)
+        if real_code == packagekit.ErrorEnum.CANNOT_REMOVE_SYSTEM_PACKAGE:
+            self.task.info_ready_status = self.task.STATUS_FORBIDDEN
+
+        self.task.handle_error(error, info_stage = not self.get_simulate())
 
     def on_transaction_finished(self, results):
         # == operation was successful
@@ -328,18 +325,6 @@ class MetaTransaction(packagekit.Task):
             print("For removal:", remove_dbginfo)
             print("For upgrade:", update_dbginfo)
 
-            apt_cache.clear()
-            aptpkg = apt_cache[self.task.pkginfo.name]
-
-            try:
-                if aptpkg.is_installed:
-                    aptpkg.mark_delete(True, True)
-                else:
-                    aptpkg.mark_install()
-            except:
-                if aptpkg.name not in BROKEN_PACKAGES:
-                    BROKEN_PACKAGES.append(aptpkg.name)
-
             self.task.download_size = self.simulated_download_size
 
             space = added_size - freed_size
@@ -358,10 +343,6 @@ class MetaTransaction(packagekit.Task):
                     print("Installer: apt - cannot remove critical package: %s" % apt_pkg_name)
                     self.task.info_ready_status = self.task.STATUS_FORBIDDEN
 
-            if aptpkg.name in BROKEN_PACKAGES:
-                print("Installer: apt- cannot execute task, package is broken: %s" % aptpkg.name)
-                self.task.info_ready_status = self.task.STATUS_BROKEN
-
             if self.task.info_ready_status not in (self.task.STATUS_FORBIDDEN, self.task.STATUS_BROKEN):
                 self.task.info_ready_status = self.task.STATUS_OK
                 self.task.confirm = self._confirm_transaction
@@ -372,7 +353,7 @@ class MetaTransaction(packagekit.Task):
 
     def _is_critical_package(self, pkg):
         try:
-            if pkg.essential or pkg.versions[0].priority == "required" or pkg.name in CRITICAL_PACKAGES:
+            if pkg.versions[0].priority == "required" or pkg.name in CRITICAL_PACKAGES:
                 return True
 
             return False
