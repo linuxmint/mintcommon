@@ -1,3 +1,10 @@
+mint-common (2.2.2) vera; urgency=medium
+
+  [ Michael Webster ]
+  * apt: Remove some dead code, fix error handling for critical packages.
+
+ -- Clement Lefebvre <root@linuxmint.com>  Fri, 02 Dec 2022 17:19:26 +0000
+
 mint-common (2.2.1) vera; urgency=medium
 
   [ Michael Webster ]
