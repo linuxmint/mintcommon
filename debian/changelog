@@ -1,3 +1,10 @@
+mint-common (2.2.3) vera; urgency=medium
+
+  [ Michael Webster ]
+  * aptdaemon.py: Go back to using aptdaemon's native confirmation dialog.
+
+ -- Clement Lefebvre <root@linuxmint.com>  Sat, 03 Dec 2022 14:43:21 +0000
+
 mint-common (2.2.2) vera; urgency=medium
 
   [ Michael Webster ]
