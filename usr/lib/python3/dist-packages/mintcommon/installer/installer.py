@@ -41,7 +41,7 @@ class InstallerTask:
     def __init__(self, pkginfo, installer,
                 client_info_ready_callback, client_info_error_callback,
                 client_installer_finished_cb, client_installer_progress_cb,
-                installer_cleanup_cb, installer_error_cleanup_cb, use_mainloop=False):
+                installer_cleanup_cb, installer_error_cleanup_cb, is_addon_task=False, use_mainloop=False):
         self.type = InstallerTask.INSTALL_TASK
 
         self.use_mainloop = use_mainloop
@@ -49,6 +49,7 @@ class InstallerTask:
 
         # pkginfo will be None for an update task
         self.pkginfo = pkginfo
+        self.is_addon_task = is_addon_task
 
         # AsApp if available
         self.asapp = None
@@ -425,6 +426,7 @@ class Installer:
                                  client_info_ready_callback, client_info_error_callback,
                                  client_installer_finished_cb, client_installer_progress_cb,
                                  self._task_finished, self._task_error,
+                                 is_addon_task=True,
                                  use_mainloop=use_mainloop)
 
             if pkginfo.installed:

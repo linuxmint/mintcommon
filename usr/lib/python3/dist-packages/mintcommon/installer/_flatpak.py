@@ -381,14 +381,53 @@ def _get_system_theme_matches():
 
     return theme_refs
 
-def _get_installed_related_refs(remote, ref_str):
+def _get_related_refs_for_removal(parent_pkginfo):
     return_refs = []
 
-    related_refs = get_fp_sys().list_installed_related_refs_sync(remote,
-                                                                 ref_str,
+    # .Locale files
+    related_refs = get_fp_sys().list_installed_related_refs_sync(parent_pkginfo.remote,
+                                                                 parent_pkginfo.refid,
                                                                  None)
+    for ref in related_refs:
+        return_refs.append(ref)
 
-    return related_refs
+    # Addons (if they're not an addon to anything else)
+    app = search_for_pkginfo_as_component(parent_pkginfo)
+    if app:
+        for addon in app.get_addons():
+            bundle = addon.get_bundle_default()
+            addon_ref = Flatpak.Ref.parse(bundle.get_id())
+
+            if not ref_is_installed(addon_ref):
+                continue
+
+            can_remove = True
+
+            ids_that_are_extended = addon.get_extends()
+            if len(ids_that_are_extended) == 1:
+                return_refs.append(addon_ref)
+                continue
+
+            for appid in ids_that_are_extended:
+                extended_apps = _search_as_pool_by_name(appid, parent_pkginfo.remote)
+                for extended_app in extended_apps:
+                    if extended_app == app:
+                        continue
+
+                    if extended_app is None:
+                        can_remove = False
+                        break
+
+                    extended_pkginfo = create_pkginfo_from_as_component(extended_app, parent_pkginfo.remote, parent_pkginfo.remote_url)
+
+                    if extended_pkginfo and extended_pkginfo.installed:
+                        can_remove = False
+                        break
+
+            if can_remove:
+                return_refs.append(addon_ref)
+
+    return return_refs
 
 def select_packages(task):
     task.transaction = FlatpakTransaction(task)
@@ -431,8 +470,9 @@ class FlatpakTransaction():
             elif self.task.type == "remove":
                 self.transaction.add_uninstall(self.task.pkginfo.refid)
 
-                for related_ref in _get_installed_related_refs(self.task.pkginfo.remote, self.task.pkginfo.refid):
-                    self.transaction.add_uninstall(related_ref.format_ref())
+                if not self.task.is_addon_task:
+                    for related_ref in _get_related_refs_for_removal(self.task.pkginfo):
+                        self.transaction.add_uninstall(related_ref.format_ref())
             else:
                 try:
                     if self.task.initial_refs_to_update != []:
@@ -739,14 +779,14 @@ def generate_uncached_pkginfos(cache):
     except GLib.Error as e:
         print("Installer: flatpak - could not check for uncached pkginfos", e.message)
 
-def pkginfo_is_installed(pkginfo):
+def _ref_is_installed(kind, name, arch, branch):
     fp_sys = get_fp_sys()
 
     try:
-        iref = fp_sys.get_installed_ref(pkginfo.kind,
-                                        pkginfo.name,
-                                        pkginfo.arch,
-                                        pkginfo.branch,
+        iref = fp_sys.get_installed_ref(kind,
+                                        name,
+                                        arch,
+                                        branch,
                                         None)
 
         if iref:
@@ -755,6 +795,18 @@ def pkginfo_is_installed(pkginfo):
         pass
 
     return False
+
+def ref_is_installed(ref):
+    return _ref_is_installed(ref.get_kind(),
+                             ref.get_name(),
+                             ref.get_arch(),
+                             ref.get_branch())
+
+def pkginfo_is_installed(pkginfo):
+    return _ref_is_installed(pkginfo.kind,
+                             pkginfo.name,
+                             pkginfo.arch,
+                             pkginfo.branch)
 
 def list_remotes():
     fp_sys = get_fp_sys()
