@@ -388,46 +388,7 @@ def _get_related_refs_for_removal(parent_pkginfo):
     related_refs = get_fp_sys().list_installed_related_refs_sync(parent_pkginfo.remote,
                                                                  parent_pkginfo.refid,
                                                                  None)
-    for ref in related_refs:
-        return_refs.append(ref)
-
-    # Addons (if they're not an addon to anything else)
-    app = search_for_pkginfo_as_component(parent_pkginfo)
-    if app:
-        for addon in app.get_addons():
-            bundle = addon.get_bundle_default()
-            addon_ref = Flatpak.Ref.parse(bundle.get_id())
-
-            if not ref_is_installed(addon_ref):
-                continue
-
-            can_remove = True
-
-            ids_that_are_extended = addon.get_extends()
-            if len(ids_that_are_extended) == 1:
-                return_refs.append(addon_ref)
-                continue
-
-            for appid in ids_that_are_extended:
-                extended_apps = _search_as_pool_by_name(appid, parent_pkginfo.remote)
-                for extended_app in extended_apps:
-                    if extended_app == app:
-                        continue
-
-                    if extended_app is None:
-                        can_remove = False
-                        break
-
-                    extended_pkginfo = create_pkginfo_from_as_component(extended_app, parent_pkginfo.remote, parent_pkginfo.remote_url)
-
-                    if extended_pkginfo and extended_pkginfo.installed:
-                        can_remove = False
-                        break
-
-            if can_remove:
-                return_refs.append(addon_ref)
-
-    return return_refs
+    return related_refs
 
 def select_packages(task):
     task.transaction = FlatpakTransaction(task)
@@ -457,6 +418,12 @@ class FlatpakTransaction():
         self.transaction.connect("operation-done", self._operation_done)
         self.transaction.connect("operation-error", self._operation_error)
         self.transaction.connect("end-of-lifed-with-rebase", self._ref_eoled_with_rebase)
+
+        # Runtimes explicitly installed are 'pinned' - which means they'll never be automatically
+        # removed due to being unused. Addons are useless without the apps they're for, so we can
+        # disable pinning for them.
+        if self.task.is_addon_task:
+            self.transaction.set_disable_auto_pin(True)
 
         thread = threading.Thread(target=self._transaction_thread)
         thread.start()
@@ -505,7 +472,6 @@ class FlatpakTransaction():
 
         except GLib.Error as e:
             self.on_transaction_error(e)
-
 
         try:
             self.transaction.run(self.task.cancellable)
