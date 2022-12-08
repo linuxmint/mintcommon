@@ -1,5 +1,6 @@
 import time
 import threading
+import datetime
 import math
 from pathlib import Path
 import subprocess
@@ -480,6 +481,22 @@ class FlatpakTransaction():
 
         self.on_transaction_finished()
 
+    def save_ref_current_version(self, ref):
+        version = "<unknown>"
+
+        try:
+            version = ref.get_appdata_version()
+
+            if version is None:
+                version = ref.get_latest_commit()
+        except:
+            # not installed
+            version = "installing"
+            pass
+
+        debug("Adding prior ref version for %s: %s" % (ref.format_ref(), version))
+        self.task.ref_prior_versions_dict[ref.format_ref()] = version
+
     def on_transaction_error(self, error):
         if not self.op_error:
             if error.code in (Flatpak.Error.ABORTED, Gio.IOErrorEnum.CANCELLED):
@@ -522,9 +539,13 @@ class FlatpakTransaction():
         # use the same ABORTED code.
         # The op error will be more specific and useful (and let us distinguish cancel from fail).
         self.op_error = error
+
+        self.log_operation_result(operation, None, error)
         return False
 
     def _operation_done(self, transaction, operation, commit, result, data=None):
+        self.log_operation_result(operation, result)
+
         self.current_count += 1
         if self.current_count < self.item_count:
             return
@@ -545,6 +566,8 @@ class FlatpakTransaction():
                 if op_type == Flatpak.TransactionOperationType.INSTALL:
                     dl_size += op.get_download_size()
                     disk_size += op.get_installed_size()
+
+                    self.save_ref_current_version(ref)
                     self._add_to_list(self.task.to_install, ref)
                 elif op_type == Flatpak.TransactionOperationType.UNINSTALL:
                     iref = fp_sys.get_installed_ref(ref.get_kind(),
@@ -552,8 +575,9 @@ class FlatpakTransaction():
                                                     ref.get_arch(),
                                                     ref.get_branch(),
                                                     None)
-
                     disk_size -= iref.get_installed_size()
+
+                    self.save_ref_current_version(iref)
                     self._add_to_list(self.task.to_remove, ref)
                 else: # update
                     iref = fp_sys.get_installed_ref(ref.get_kind(),
@@ -567,6 +591,7 @@ class FlatpakTransaction():
                     dl_size += op.get_download_size()
                     disk_size += new_installed_size - current_installed_size
 
+                    self.save_ref_current_version(iref)
                     self._add_to_list(self.task.to_update, ref)
 
             self.task.download_size = dl_size
@@ -688,6 +713,48 @@ class FlatpakTransaction():
 
     def get_operations(self):
         return self.transaction.get_operations()
+
+    def log_operation_result(self, operation, result, error=None):
+        log_timestamp = datetime.datetime.now().strftime("%F::%T")
+        basic_ref = Flatpak.Ref.parse(operation.get_ref())
+
+        old_version = self.task.ref_prior_versions_dict[basic_ref.format_ref()]
+
+        new_version = "<none>"
+        if operation.get_operation_type() in (Flatpak.TransactionOperationType.INSTALL, Flatpak.TransactionOperationType.UPDATE):
+            try:
+                iref = get_fp_sys().get_installed_ref(basic_ref.get_kind(),
+                                                      basic_ref.get_name(),
+                                                      basic_ref.get_arch(),
+                                                      basic_ref.get_branch(),
+                                                      None)
+                new_version = iref.get_appdata_version()
+
+                if new_version is None:
+                    new_version = iref.get_latest_commit()
+            except Exception as e:
+                pass
+        else:
+            new_version = "removed"
+
+        if error is None:
+            log_entry = "%s::%s::%s::%s::%s::%s" % (log_timestamp,
+                                               basic_ref.get_kind().value_nick,
+                                               Flatpak.transaction_operation_type_to_string(operation.get_operation_type()),
+                                               basic_ref.get_name(),
+                                               old_version,
+                                               new_version)
+        else:
+            log_entry = "%s::%s::%s::%s::%s::FAILED: (%d): %s" % (log_timestamp,
+                                               basic_ref.get_kind().value_nick,
+                                               Flatpak.transaction_operation_type_to_string(operation.get_operation_type()),
+                                               basic_ref.get_name(),
+                                               old_version,
+                                               error.code,
+                                               error.message)
+
+        debug("Logging: %s" % log_entry)
+        self.task.transaction_log.append(log_entry)
 
 def list_updated_pkginfos(cache):
     fp_sys = get_fp_sys()

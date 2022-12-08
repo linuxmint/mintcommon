@@ -56,7 +56,14 @@ class InstallerTask:
 
         self.name = None
 
+        # Lists the refs we selected for an update, vs those added as dependencies (this is for our confirm dialog to
+        # make layout decisions)
         self.initial_refs_to_update = []
+
+        # FlatpakRef : pre-transaction-version or commit
+        # For activity logging so we can record pre and post-version.
+        self.ref_prior_versions_dict = {}
+        self.transaction_log = []
 
         # Set by .select_pkginfo(), the re-entry point after a task is fully
         # calculated, and the UI should be updated with detailed info about
@@ -141,6 +148,9 @@ class InstallerTask:
         else:
             # Remove packages, show current version
             self.version = installer.get_installed_version(self.pkginfo)
+
+    def get_transaction_log(self):
+        return self.transaction_log
 
     def call_info_ready_callback(self):
         if self.info_ready_callback == None:
