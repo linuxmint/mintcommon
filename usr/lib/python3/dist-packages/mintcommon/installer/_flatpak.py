@@ -418,6 +418,7 @@ class FlatpakTransaction():
         self.transaction.connect("new-operation", self._new_operation)
         self.transaction.connect("operation-done", self._operation_done)
         self.transaction.connect("operation-error", self._operation_error)
+        self.transaction.connect("add-new-remote", self._transaction_add_new_remote)
         self.transaction.connect("end-of-lifed-with-rebase", self._ref_eoled_with_rebase)
 
         # Runtimes explicitly installed are 'pinned' - which means they'll never be automatically
@@ -653,10 +654,21 @@ class FlatpakTransaction():
 
         return True
 
+    def _transaction_add_new_remote(self, transaction, reason_code, from_id, suggested_remote_name, url, data=None):
+        if reason_code == Flatpak.TransactionRemoteReason.GENERIC_REPO:
+            reason = "The remote has additional apps."
+        elif reason_code == Flatpak.TransactionRemoteReason.RUNTIME_DEPS:
+            reason = "The remote has runtimes needed for the application."
+        else:
+            reason = "Reason unknown"
+
+        print("Adding new remote '%s' (%s) for %s: %s" % (suggested_remote_name, url, from_id, reason))
+        return True
+
     def _ref_eoled_with_rebase(self, transaction, remote, ref, reason, rebased_to_ref, prev_ids):
-        # skip
-        # transaction.add_uninstall(ref)
-        # transaction.add_rebase(rebased_to_ref)
+        print("%s is EOL (%s). Replacing with %s" % (ref.format_ref(), reason, rebased_to_ref.format_ref()))
+        transaction.add_uninstall(ref)
+        transaction.add_rebase(rebased_to_ref)
         return True
 
     def _add_to_list(self, ref_list, ref):
