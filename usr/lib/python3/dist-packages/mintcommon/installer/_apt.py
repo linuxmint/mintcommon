@@ -177,7 +177,6 @@ def select_packages(task):
 class MetaTransaction(packagekit.Task):
     def __init__(self, task):
         packagekit.Task.__init__(self)
-        check_ml()
 
         self.task = task
         self.simulated_download_size = 0

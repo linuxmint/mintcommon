@@ -24,11 +24,6 @@ from . import dialogs
 from .dialogs import ChangesConfirmDialog, FlatpakProgressWindow
 from .misc import debug
 
-
-def check_ml(_id):
-    on_ml = threading.current_thread() == threading.main_thread()
-    print("%s on mainloop: %s" %(_id, on_ml))
-
 class FlatpakRemoteInfo():
     def __init__(self, remote=None):
         if remote:
