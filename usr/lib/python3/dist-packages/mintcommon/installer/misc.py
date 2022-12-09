@@ -26,6 +26,10 @@ def debug(str):
     print("Mintinstall (DEBUG): %s" % str)
 
 def check_ml():
+    if threading.current_thread().name is not None:
+        tid = threading.current_thread().name
+    else:
+        tid = str(threading.get_ident())
     fid = inspect.stack()[1][3]
     on_ml = threading.current_thread() == threading.main_thread()
-    print("%s on mainloop: " % fid, on_ml)
+    print("%s in thread: %s" % (fid, tid))

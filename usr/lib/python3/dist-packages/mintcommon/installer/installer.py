@@ -41,11 +41,11 @@ class InstallerTask:
     def __init__(self, pkginfo, installer,
                 client_info_ready_callback, client_info_error_callback,
                 client_installer_finished_cb, client_installer_progress_cb,
-                installer_cleanup_cb, installer_error_cleanup_cb, is_addon_task=False, use_mainloop=False):
+                installer_cleanup_cb, installer_error_cleanup_cb, is_addon_task=False, use_mainloop=False, parent_window=None):
         self.type = InstallerTask.INSTALL_TASK
 
         self.use_mainloop = use_mainloop
-        self.parent_window = None
+        self.parent_window = parent_window
 
         # pkginfo will be None for an update task
         self.pkginfo = pkginfo
@@ -177,16 +177,16 @@ class InstallerTask:
             self.error_message = str(error)
 
         if info_stage:
-            self.info_ready_status = self.STATUS_UNKNOWN
+            if self.info_error_callback == None:
+                dialogs.show_error(self.error_message, self.parent_window)
+                return
 
-        if self.info_error_callback == None:
-            dialogs.show_error(self.error_message)
-            return
-
-        if self.use_mainloop:
-            GLib.idle_add(self.info_error_callback, self, priority=GLib.PRIORITY_DEFAULT)
+            if self.use_mainloop:
+                GLib.idle_add(self.info_error_callback, self, priority=GLib.PRIORITY_DEFAULT)
+            else:
+                self.info_error_callback(self)
         else:
-            self.info_error_callback(self)
+            dialogs.show_error(self.error_message, self.parent_window)
 
     def call_finished_cleanup_callback(self):
         if not self.finished_cleanup_cb:
@@ -365,7 +365,7 @@ class Installer:
     def select_pkginfo(self, pkginfo,
                        client_info_ready_callback, client_info_error_callback,
                        client_installer_finished_cb, client_installer_progress_cb,
-                       use_mainloop=False):
+                       use_mainloop=False, parent_window=None):
         """
         Initiates calculations for installing or removing a particular package
         (depending upon whether or not the selected package is installed.  Creates
@@ -387,7 +387,7 @@ class Installer:
                              client_info_ready_callback, client_info_error_callback,
                              client_installer_finished_cb, client_installer_progress_cb,
                              self._task_finished, self._task_error,
-                             use_mainloop=use_mainloop)
+                             use_mainloop=use_mainloop, parent_window=parent_window)
 
         if self.pkginfo_is_installed(pkginfo):
             # It's not installed, so assume we're installing

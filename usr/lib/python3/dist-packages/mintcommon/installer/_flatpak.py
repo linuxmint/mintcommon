@@ -427,7 +427,7 @@ class FlatpakTransaction():
         if self.task.is_addon_task:
             self.transaction.set_disable_auto_pin(True)
 
-        thread = threading.Thread(target=self._transaction_thread)
+        thread = threading.Thread(target=self._transaction_thread, name="flatpak-transaction-thread")
         thread.start()
 
     def _transaction_thread(self):
@@ -533,6 +533,10 @@ class FlatpakTransaction():
     def on_transaction_finished(self):
         get_fp_sys().drop_caches(None)
 
+        # If an op failed, show an error, even though we 'finished successfully'
+        if self.task.type == self.task.UPDATE_TASK and self.op_error:
+            self.on_transaction_error(self.op_error)
+
         if self.task.error_message:
             self.task.call_error_cleanup_callback()
         else:
@@ -543,12 +547,12 @@ class FlatpakTransaction():
         partial_chunk = (progress.get_progress() / 100.0) * package_chunk_size
         actual_progress = math.floor(((self.current_count * package_chunk_size) + partial_chunk) * 100.0)
         if self.task.client_progress_cb:
-            GLib.idle_add(self.task.client_progress_cb,
-                          self.task.pkginfo,
-                          actual_progress,
-                          progress.get_is_estimating(),
-                          progress.get_status(),
-                          priority=GLib.PRIORITY_DEFAULT)
+            Gdk.threads_add_idle(GLib.PRIORITY_DEFAULT,
+                                 self.task.client_progress_cb,
+                                 self.task.pkginfo,
+                                 actual_progress,
+                                 progress.get_is_estimating(),
+                                 progress.get_status())
 
     def _new_operation(self, transaction, op, progress):
         progress.set_update_frequency(500)
@@ -556,12 +560,18 @@ class FlatpakTransaction():
 
     def _operation_error(self, transaction, operation, error, details):
         # Set error from the failing operation - Overall transaction errors from real failure
-        # use the same ABORTED code.
-        # The op error will be more specific and useful (and let us distinguish cancel from fail).
-        self.op_error = error
+        # use the same ABORTED code. The op error will be more specific and useful (and let us
+        # distinguish cancel from fail).
 
+        # If the user cancelled the operation, cancel the transaction, but don't log it.
+        if error.code == Gio.IOErrorEnum.CANCELLED:
+            return False
+
+        self.op_error = error
         self.log_operation_result(operation, None, error)
-        return False
+
+        # Don't abort remaining operations if we're doing updates.
+        return self.task.type == self.task.UPDATE_TASK
 
     def _operation_done(self, transaction, operation, commit, result, data=None):
         self.log_operation_result(operation, result)
@@ -623,7 +633,7 @@ class FlatpakTransaction():
         except Exception as e:
             # Something went wrong, bail out
             self.task.info_ready_status = self.task.STATUS_BROKEN
-            self.task.handle_error(e)
+            self.task.handle_error(e, info_stage=True)
             return False # Close 'ready' callback, cancel.
 
         if len(self.task.to_install) > 0:
@@ -705,6 +715,12 @@ class FlatpakTransaction():
         total_count = len(self.task.to_install + self.task.to_remove + self.task.to_update)
         additional = False
 
+        if total_count == 0:
+            print("No work to perform now - are you online still?")
+            # FIXME: If the network's down, flatpak doesn't consider not being able to access remote refs as fatal, since it's an update
+            # and they're already installed. We should popup a message to say so.
+            return False
+
         if self.task.type in (self.task.INSTALL_TASK, self.task.UNINSTALL_TASK) and total_count > 1:
             additional = True
         elif self.task.type == self.task.UPDATE_TASK:
@@ -732,9 +748,9 @@ class FlatpakTransaction():
 
         if self.task.client_progress_cb != None:
             self.task.has_window = True
-            GLib.idle_add(self.task.client_progress_cb, self.task.pkginfo, 0, True, " : ", priority=GLib.PRIORITY_DEFAULT)
+            GLib.idle_add(self.task.client_progress_cb, self.task.pkginfo, 0, True, " : ")
         else:
-            GLib.idle_add(self._show_progress_window, self.task, priority=GLib.PRIORITY_DEFAULT)
+            GLib.idle_add(self._show_progress_window, self.task)
 
         self.start_transaction.set()
 

@@ -241,10 +241,13 @@ class MetaTransaction(packagekit.Task):
             # user navigated away before simulation was complete, etc...
             return
 
-        if real_code == packagekit.ErrorEnum.CANNOT_REMOVE_SYSTEM_PACKAGE:
+        if real_code == packagekit.ErrorEnum.CANNOT_REMOVE_SYSTEM_PACKAGE or self.task.pkginfo.name in CRITICAL_PACKAGES:
             self.task.info_ready_status = self.task.STATUS_FORBIDDEN
 
-        self.task.handle_error(error, info_stage = not self.get_simulate())
+        if self.task.info_ready_status == self.task.STATUS_NONE:
+            self.task.info_ready_status = self.task.STATUS_UNKNOWN
+
+        self.task.handle_error(error, info_stage = self.get_simulate())
 
     def on_transaction_finished(self, results):
         # == operation was successful
@@ -273,7 +276,12 @@ class MetaTransaction(packagekit.Task):
             return
 
         if ptype == packagekit.ProgressType.PERCENTAGE:
-            self.task.client_progress_cb(self.task.pkginfo, progress.get_percentage(), False)
+            if self.task.client_progress_cb:
+                GLib.idle_add(self.task.client_progress_cb,
+                              self.task.pkginfo,
+                              progress.get_percentage(),
+                              False,
+                              priority=GLib.PRIORITY_DEFAULT)
 
     def do_simulate_question(self, request, results):
         if self.task.cancellable.is_cancelled():

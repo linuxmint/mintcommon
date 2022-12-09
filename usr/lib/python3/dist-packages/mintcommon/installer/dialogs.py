@@ -1,6 +1,6 @@
 import gi
 gi.require_version('XApp', '1.0')
-from gi.repository import GLib, Gtk, GObject, Gdk, XApp
+from gi.repository import GLib, Gtk, GObject, Gdk, XApp, Pango
 
 import gettext
 APP = 'mint-common'
@@ -300,45 +300,41 @@ class FlatpakProgressWindow(Gtk.Dialog):
     def window_client_finished_cb(self, task):
         self.finished = True
 
-        XApp.set_window_progress(self, 0)
-        self.stop_progress_pulse()
-
-        self.progress.set_fraction(1.0)
-
-        if task.error_message:
-            self.set_urgency_hint(True)
-            self.button.set_label(Gtk.STOCK_CLOSE)
-        else:
-            self.destroy()
-            self.final_finished_cb(task)
+        self.destroy()
+        self.final_finished_cb(task)
 
     def on_button_clicked(self, button):
         if not self.finished:
             self.task.cancel()
-        else:
-            self.destroy()
-            self.final_finished_cb(self.task)
 
-def show_error(message):
-    GObject.idle_add(_show_error_mainloop, message, priority=GLib.PRIORITY_DEFAULT)
+def show_error(message, parent_window=None):
+    Gdk.threads_add_idle(GLib.PRIORITY_DEFAULT_IDLE, _show_error_mainloop, message, parent_window)
 
-def _show_error_mainloop(message):
+def _show_error_mainloop(message, parent_window):
     dialog = Gtk.MessageDialog(None,
                                Gtk.DialogFlags.DESTROY_WITH_PARENT,
                                Gtk.MessageType.ERROR,
                                Gtk.ButtonsType.OK,
                                "")
+    if parent_window is not None:
+        dialog.set_transient_for(parent_window)
+        dialog.set_modal(True)
+    dialog.set_title(GLib.get_application_name())
 
     text = _("An error occurred")
     dialog.set_markup("<big><b>%s</b></big>" % text)
-    message_label = Gtk.Label(message)
-    dialog.get_message_area().pack_start(message_label, False, False, 6)
-    message_label.set_line_wrap(True)
+
+    scroller = Gtk.ScrolledWindow(min_content_height = 75, max_content_height=400, min_content_width=400, propagate_natural_height=True)
+    scroller.add(message_label)
+    dialog.get_message_area().pack_start(scroller, False, False, 8)
+
+    message_label = Gtk.Label(message, lines=20, wrap=True, wrap_mode=Pango.WrapMode.WORD_CHAR, selectable=True)
     message_label.set_max_width_chars(60)
     message_label.show()
 
+    dialog.show_all()
     dialog.run()
-    dialog.hide()
+    dialog.destroy()
 
-    return False
+    return GLib.SOURCE_REMOVE
 
