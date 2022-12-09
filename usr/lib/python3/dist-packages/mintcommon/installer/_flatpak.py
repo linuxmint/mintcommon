@@ -443,11 +443,30 @@ class FlatpakTransaction():
                         self.transaction.add_uninstall(related_ref.format_ref())
             else:
                 try:
+                    all_updates = get_fp_sys().list_installed_refs_for_update(self.task.cancellable)
+
                     if self.task.initial_refs_to_update != []:
                         for ref in self.task.initial_refs_to_update:
-                            self.transaction.add_update(ref, None, None)
+                            # Sometimes it turns out we have a new package to install that is not part of
+                            # another package's pulled-in dependencies. It ends up as a selectable update in
+                            # mintupdate. Once it does, though, we have to find its associated package in
+                            # the original update list so we know which remote to try and pull it from.
+                            #
+                            # FIXME: this is because select_updates only takes a ref string. It could take a a remote
+                            # or installed- ref instead.
+                            if not ref_is_installed(Flatpak.Ref.parse(ref)):
+                                for installed_ref in all_updates:
+                                    related_refs = get_fp_sys().list_remote_related_refs_sync(installed_ref.get_origin(),
+                                                                                              installed_ref.format_ref(),
+                                                                                              self.task.cancellable)
+                                    for related_ref in related_refs:
+                                        if related_ref.format_ref() == ref:
+                                            self.transaction.add_install(installed_ref.get_origin(), ref, None)
+                            else:
+                                self.transaction.add_update(ref, None, None)
+
                     else:
-                        for ref in get_fp_sys().list_installed_refs(self.task.cancellable):
+                        for ref in all_updates:
                             self.transaction.add_update(ref.format_ref(), None, None)
                 except GLib.Error as e:
                     print("Problem checking installed flatpaks updates: %s" % e.message)
