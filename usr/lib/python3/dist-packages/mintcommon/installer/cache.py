@@ -128,10 +128,12 @@ class PkgCache(object):
         cache = {}
         sections = {}
         flatpak_remote_infos = {}
-        if self.have_flatpak and self.cache_content in ("f", None):
+
+        # If there's no cache, always generate both package types.
+        if self.have_flatpak and (self.cache_content in ("f", None) or self.status == self.STATUS_EMPTY):
             cache, flatpak_remote_infos = _flatpak.process_full_flatpak_installation(cache)
 
-        if self.cache_content in ("a", None):
+        if self.cache_content in ("a", None) or self.status == self.STATUS_EMPTY:
             cache, sections = _apt.process_full_apt_cache(cache)
 
         return cache, sections, flatpak_remote_infos
@@ -244,6 +246,18 @@ class PkgCache(object):
     def _new_cache_common(self):
         print("Installer: Generating new pkgcache")
         cache, sections, flatpak_remote_infos = self._generate_cache()
+
+        # If we're refreshing only a specific package type, don't destroy existing
+        # items of the other type (otherwise if the cache is refreshed by mintupdate's
+        # flatpak updater mintinstall will end up starting without any apt package info
+        # and look broken).
+        with self._item_lock:
+            if self.cache_content == "f":
+                for key in [key for key in self._items.keys() if key.startswith("a")]:
+                    cache[key] = self._items[key]
+            elif self.cache_content == "a":
+                for key in [key for key in self._items.keys() if key.startswith("f")]:
+                    cache[key] = self._items[key]
 
         if len(cache) > 0:
             self._save_cache(JsonObject(cache, sections, flatpak_remote_infos))
