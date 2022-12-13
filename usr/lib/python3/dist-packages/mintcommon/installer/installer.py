@@ -546,7 +546,8 @@ class Installer:
                 if self.have_flatpak:
                     backend_component = _flatpak.search_for_pkginfo_as_component(pkginfo)
 
-            self.backend_table[pkginfo] = backend_component
+            if backend_component is not None:
+                self.backend_table[pkginfo] = backend_component
 
             # It's possible at some point we'll refresh appstream at runtime, if so we'll
             # want to clear cached data so it can be re-fetched anew.  For now there's
