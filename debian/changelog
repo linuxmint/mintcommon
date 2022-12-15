@@ -1,3 +1,18 @@
+mint-common (2.2.4) vera; urgency=medium
+
+  [ Michael Webster ]
+  * flatpak: Remove any installed addons when removing an application.
+  * Disable auto-pinning of add-ons.
+  * flatpak: Add logging for update operations.
+  * flatpak: Handle a case where a new package must be installed during an update.
+  * flatpak: Implement FlatpakTransaction:add-remote and finish implementing :end-of-life-with-rebase.
+  * Fix progress and error handling.
+  * installer: Remove some useless code.
+  * cache: Don't destroy existing cache if it's for a specific package type.
+  * Don't store an empty appstream component, otherwise it will never be checked again.
+
+ -- Clement Lefebvre <root@linuxmint.com>  Thu, 15 Dec 2022 12:53:00 +0000
+
 mint-common (2.2.3) vera; urgency=medium
 
   [ Michael Webster ]
