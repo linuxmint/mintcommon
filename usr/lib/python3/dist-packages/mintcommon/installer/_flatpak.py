@@ -671,9 +671,18 @@ class FlatpakTransaction():
         return True
 
     def _ref_eoled_with_rebase(self, transaction, remote, ref, reason, rebased_to_ref, prev_ids):
-        debug("%s is EOL (%s). Replacing with %s" % (ref.format_ref(), reason, rebased_to_ref.format_ref()))
-        transaction.add_uninstall(ref)
-        transaction.add_rebase(rebased_to_ref)
+        warn("%s is EOL (%s). Replacing with %s" % (ref, reason, rebased_to_ref))
+
+        try:
+            transaction.add_uninstall(ref)
+        except:
+            pass
+        try:
+            transaction.add_rebase(rebased_to_ref)
+        except:
+            debug("No new ref to rebase to, using the eol'd one")
+            return False
+
         return True
 
     def _add_to_list(self, ref_list, ref):
