@@ -12,7 +12,7 @@ from . import _apt
 from . import _flatpak
 from ._flatpak import FlatpakRemoteInfo
 from .pkgInfo import FlatpakPkgInfo, AptPkgInfo
-from .misc import print_timing
+from .misc import print_timing, debug, warn
 
 SYS_CACHE_PATH = "/var/cache/mintinstall/pkginfo.json"
 USER_CACHE_PATH = os.path.join(GLib.get_user_cache_dir(), "mintinstall", "pkginfo.json")
@@ -147,7 +147,7 @@ class PkgCache(object):
             sys_mtime = os.path.getmtime(SYS_CACHE_PATH)
 
             if ((time.time() - MAX_AGE) > sys_mtime) or not os.access(SYS_CACHE_PATH, os.R_OK):
-                print("Installer: System pkgcache too old or not accessible, skipping")
+                debug("Installer: System pkgcache too old or not accessible, skipping")
                 sys_mtime = 0
         except OSError:
             sys_mtime = 0
@@ -156,7 +156,7 @@ class PkgCache(object):
             user_mtime = os.path.getmtime(USER_CACHE_PATH)
 
             if (time.time() - MAX_AGE) > user_mtime:
-                print("Installer: User pkgcache too old, skipping")
+                debug("Installer: User pkgcache too old, skipping")
                 user_mtime = 0
         except OSError:
             user_mtime = 0
@@ -170,10 +170,10 @@ class PkgCache(object):
         # Select the most recent
         if sys_mtime > user_mtime:
             most_recent = SYS_CACHE_PATH
-            print("Installer: System pkgcache is most recent, using it.")
+            debug("Installer: System pkgcache is most recent, using it.")
         else:
             most_recent = USER_CACHE_PATH
-            print("Installer: User pkgcache is most recent, using it.")
+            debug("Installer: User pkgcache is most recent, using it.")
 
         return Path(most_recent)
 
@@ -200,7 +200,7 @@ class PkgCache(object):
                 sections = json_obj.section_lists
                 flatpak_remote_infos = json_obj.flatpak_remote_infos
         except Exception as e:
-            print("Installer: Error loading pkginfo cache:", e)
+            warn("Installer: Error loading pkginfo cache:", e)
             cache = None
 
         if cache == None:
@@ -241,10 +241,10 @@ class PkgCache(object):
             with path.open(mode='w', encoding="utf8") as f:
                 json.dump(to_be_json, f, default=lambda o: o.to_json(), indent=4)
         except Exception as e:
-            print("Installer: Could not save cache:", str(e))
+            warn("Installer: Could not save cache:", str(e))
 
     def _new_cache_common(self):
-        print("Installer: Generating new pkgcache")
+        debug("Installer: Generating new pkgcache")
         cache, sections, flatpak_remote_infos = self._generate_cache()
 
         # If we're refreshing only a specific package type, don't destroy existing
@@ -319,7 +319,7 @@ class PkgCache(object):
             installer_log = gzip.open(installer_log, "r").read().decode('utf-8').splitlines()
         except Exception as e:
             # There are a number of different exceptions here, but there's only one response
-            print("Could not get initial installed packages list (check /var/log/installer/initial-status.gz): %s" % str(e))
+            warn("Could not get initial installed packages list (check /var/log/installer/initial-status.gz): %s" % str(e))
             return None
         initial_status = [x[9:] for x in installer_log if x.startswith("Package: ")]
         if not initial_status:

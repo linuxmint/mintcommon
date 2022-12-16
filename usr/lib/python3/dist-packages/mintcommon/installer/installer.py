@@ -9,7 +9,7 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import GLib, GObject, Gio, Gtk
 
 from . import cache, _flatpak, _apt, dialogs
-from .misc import print_timing, check_ml
+from .misc import print_timing, check_ml, debug, warn
 
 PKG_TYPE_ALL = None
 PKG_TYPE_APT = "a"
@@ -226,7 +226,7 @@ class Installer:
 
             return True
         except:
-            print("No flatpak support, install flatpak and gir1.2-flatpak-1.0 and restart mintinstall to enable it.")
+            warn("No flatpak support, install flatpak and gir1.2-flatpak-1.0 and restart mintinstall to enable it.")
 
         return False
 
@@ -238,7 +238,7 @@ class Installer:
         """
         
         if self.pkg_type == PKG_TYPE_FLATPAK and not self.have_flatpak:
-            print("Not syncing for flatpaks only, as there is currently no support")
+            debug("Not syncing for flatpaks only, as there is currently no support")
             return True
 
         self.settings = Gio.Settings(schema_id="com.linuxmint.install")
@@ -277,7 +277,7 @@ class Installer:
             GObject.idle_add(self._idle_cache_load_done)
         else:
             if self.remotes_changed:
-                print("Installer: Flatpak remotes have changed, forcing a new cache.")
+                debug("Installer: Flatpak remotes have changed, forcing a new cache.")
 
             self.cache.force_new_cache_async(self._idle_cache_load_done)
 
@@ -306,7 +306,7 @@ class Installer:
 
         self.generate_uncached_pkginfos(self.cache)
 
-        print('Full installer startup took %0.3f ms' % ((time.time() - self.startup_timer) * 1000.0))
+        debug('Full installer startup took %0.3f ms' % ((time.time() - self.startup_timer) * 1000.0))
 
         if self._init_cb:
             self._init_cb()
@@ -565,7 +565,7 @@ class Installer:
         """
 
         if pkginfo.pkg_hash.startswith("a"):
-            print("launch_flatpak: pkginfo is not a flatpak")
+            debug("launch_flatpak: pkginfo is not a flatpak")
 
         comp = self.get_appstream_app_for_pkginfo(pkginfo)
 
@@ -742,7 +742,7 @@ class Installer:
 
         self.tasks[key] = task
 
-        print("Starting task for package %s, type '%s'" % (key, task.type))
+        debug("Starting task for package %s, type '%s'" % (key, task.type))
 
         task.execute()
 
@@ -750,7 +750,7 @@ class Installer:
         if not task.pkginfo:
             try:
                 del self.tasks["updates"]
-                print("Done with update task (success)")
+                debug("Done with update task (success)")
             except:
                 pass
         else:
@@ -759,7 +759,7 @@ class Installer:
             if key:
                 try:
                     del self.tasks[key]
-                    print("Done with task (success)", key)
+                    debug("Done with task (success)", key)
                 except:
                     pass
 
@@ -769,7 +769,7 @@ class Installer:
         if not task.pkginfo:
             try:
                 del self.tasks["updates"]
-                print("Done with update task (failure)")
+                debug("Done with update task (failure)")
             except:
                 pass
         else:
@@ -778,7 +778,7 @@ class Installer:
             if key:
                 try:
                     del self.tasks[key]
-                    print("Done with task (failure)", key)
+                    debug("Done with task (failure)", key)
                 except:
                     pass
 

@@ -22,7 +22,7 @@ except:
 from .pkgInfo import FlatpakPkgInfo
 from . import dialogs
 from .dialogs import ChangesConfirmDialog, FlatpakProgressWindow
-from .misc import debug
+from .misc import debug, warn
 
 class FlatpakRemoteInfo():
     def __init__(self, remote=None):
@@ -107,10 +107,10 @@ def _process_remote(cache, fp_sys, remote, arch):
     remote_name = remote.get_name()
 
     if remote.get_disabled():
-        print("Installer: flatpak - remote '%s' is disabled, skipping" % remote_name)
+        debug("Installer: flatpak - remote '%s' is disabled, skipping" % remote_name)
         return
 
-    print("Installer: flatpak - updating appstream data for remote '%s'..." % remote_name)
+    debug("Installer: flatpak - updating appstream data for remote '%s'..." % remote_name)
 
     try:
         success = fp_sys.update_appstream_sync(remote_name, arch, None)
@@ -121,7 +121,7 @@ def _process_remote(cache, fp_sys, remote, arch):
     # get_noenumerate indicates whether a remote should be used to list applications.
     # Instead, they're intended for single downloads (via .flatpakref files)
     if remote.get_noenumerate():
-        print("Installer: flatpak - remote '%s' is marked as no-enumerate skipping package listing" % remote_name)
+        debug("Installer: flatpak - remote '%s' is marked as no-enumerate skipping package listing" % remote_name)
         return
 
     remote_url = remote.get_url()
@@ -145,7 +145,7 @@ def _process_remote(cache, fp_sys, remote, arch):
 
             _add_package_to_cache(cache, ref, remote_url, False)
     except GLib.Error as e:
-        print("Process remote:", e.message)
+        warn("Process remote:", e.message)
 
 def _add_package_to_cache(cache, ref, remote_url, installed):
     pkg_hash = make_pkg_hash(ref)
@@ -187,15 +187,15 @@ def process_full_flatpak_installation(cache):
                     if ref.get_origin() == remote_name:
                         _add_package_to_cache(cache, ref, remote.get_url(), True)
             except GLib.Error as e:
-                print("adding packages:", e.message)
+                warn("adding packages:", e.message)
 
             flatpak_remote_infos[remote_name] = FlatpakRemoteInfo(remote)
 
     except GLib.Error as e:
-        print("Installer: flatpak - could not get remote list", e.message)
+        warn("Installer: flatpak - could not get remote list", e.message)
         cache = {}
 
-    print('Installer: Processing Flatpaks for cache took %0.3f ms' % ((time.time() - fp_time) * 1000.0))
+    debug('Installer: Processing Flatpaks for cache took %0.3f ms' % ((time.time() - fp_time) * 1000.0))
 
     return cache, flatpak_remote_infos
 
@@ -208,7 +208,7 @@ def _load_appstream_pool(remote):
         with open(os.path.join(path, "appstream.xml")) as f:
             pool.from_xml(f.read(), path)
     except Exception as e:
-        print("Could not load appstream info for remote '%s': %s" % (remote, str(e)))
+        warn("Could not load appstream info for remote '%s': %s" % (remote, str(e)))
         return
 
     _as_pools[remote.get_name()] = pool
@@ -234,7 +234,7 @@ def _initialize_appstream_thread():
                 msg = e.message
             except:
                 msg = str(e)
-            print("Installer: Could not initialize appstream components for flatpaks: %s" % msg)
+            warn("Installer: Could not initialize appstream components for flatpaks: %s" % msg)
 
 def get_remote_or_installed_ref(ref, remote_name):
     fp_sys = get_fp_sys()
@@ -250,7 +250,7 @@ def get_remote_or_installed_ref(ref, remote_name):
             return iref
     except GLib.Error as e:
         if e.code != Flatpak.Error.NOT_INSTALLED:
-            print("Installer: Couldn't look up InstalledRef: %s" % e.message)
+            warn("Installer: Couldn't look up InstalledRef: %s" % e.message)
 
     try:
         rref = fp_sys.fetch_remote_ref_sync(remote_name,
@@ -263,7 +263,7 @@ def get_remote_or_installed_ref(ref, remote_name):
             return rref
     except GLib.Error as e:
         if e.code != Flatpak.Error.ALREADY_INSTALLED:
-            print("Installer: Couldn't look up RemoteRef (%s): %s" % (remote_name, e.message))
+            warn("Installer: Couldn't look up RemoteRef (%s): %s" % (remote_name, e.message))
 
     return None
 
@@ -345,7 +345,7 @@ def _get_system_theme_matches():
             remote_name = remote.get_name()
 
             try:
-                print("Looking for theme %s in %s" % (name, remote_name))
+                debug("Looking for theme %s in %s" % (name, remote_name))
 
                 all_refs = fp_sys.list_remote_refs_sync(remote_name, None)
                 matching_refs = []
@@ -365,12 +365,12 @@ def _get_system_theme_matches():
                         continue
 
                     theme_ref = matching_ref
-                    print("Found theme ref '%s' in remote %s" % (theme_ref.format_ref(), remote_name))
+                    debug("Found theme ref '%s' in remote %s" % (theme_ref.format_ref(), remote_name))
                     break
 
             except GLib.Error as e:
                 theme_ref = None
-                debug("Error finding themes for flatpak: %s" % e.message)
+                warn("Error finding themes for flatpak: %s" % e.message)
 
         if theme_ref:
             theme_refs.append(theme_ref)
@@ -389,12 +389,12 @@ def _get_related_refs_for_removal(parent_pkginfo):
 def select_packages(task):
     task.transaction = FlatpakTransaction(task)
 
-    print("Installer: Calculating changes required for Flatpak package: %s" % task.pkginfo.name)
+    debug("Installer: Calculating changes required for Flatpak package: %s" % task.pkginfo.name)
 
 def select_updates(task):
     task.transaction = FlatpakTransaction(task)
 
-    print("Installer: Calculating Flatpak updates.")
+    debug("Installer: Calculating Flatpak updates.")
 
 class FlatpakTransaction():
     def __init__(self, task):
@@ -465,7 +465,7 @@ class FlatpakTransaction():
                         for ref in all_updates:
                             self.transaction.add_update(ref.format_ref(), None, None)
                 except GLib.Error as e:
-                    print("Problem checking installed flatpaks updates: %s" % e.message)
+                    warn("Problem checking installed flatpaks updates: %s" % e.message)
                     raise
 
 
@@ -632,17 +632,17 @@ class FlatpakTransaction():
             return False # Close 'ready' callback, cancel.
 
         if len(self.task.to_install) > 0:
-            print("For install:")
+            debug("For install:")
             for ref in self.task.to_install:
-                print(ref.format_ref())
+                debug(ref.format_ref())
         if len(self.task.to_remove) > 0:
-            print("For removal:")
+            debug("For removal:")
             for ref in self.task.to_remove:
-                print(ref.format_ref())
+                debug(ref.format_ref())
         if len(self.task.to_update) > 0:
-            print("For updating:")
+            debug("For updating:")
             for ref in self.task.to_update:
-                print(ref.format_ref())
+                debug(ref.format_ref())
 
         self.item_count = len(self.task.to_install + self.task.to_remove + self.task.to_update)
 
@@ -667,11 +667,11 @@ class FlatpakTransaction():
         else:
             reason = "Reason unknown"
 
-        print("Adding new remote '%s' (%s) for %s: %s" % (suggested_remote_name, url, from_id, reason))
+        debug("Adding new remote '%s' (%s) for %s: %s" % (suggested_remote_name, url, from_id, reason))
         return True
 
     def _ref_eoled_with_rebase(self, transaction, remote, ref, reason, rebased_to_ref, prev_ids):
-        print("%s is EOL (%s). Replacing with %s" % (ref.format_ref(), reason, rebased_to_ref.format_ref()))
+        debug("%s is EOL (%s). Replacing with %s" % (ref.format_ref(), reason, rebased_to_ref.format_ref()))
         transaction.add_uninstall(ref)
         transaction.add_rebase(rebased_to_ref)
         return True
@@ -711,7 +711,7 @@ class FlatpakTransaction():
         additional = False
 
         if total_count == 0:
-            print("No work to perform now - are you online still?")
+            debug("No work to perform now - are you online still?")
             # FIXME: If the network's down, flatpak doesn't consider not being able to access remote refs as fatal, since it's an update
             # and they're already installed. We should popup a message to say so.
             return False
@@ -806,7 +806,7 @@ def list_updated_pkginfos(cache):
     try:
         updates = fp_sys.list_installed_refs_for_update(None)
     except GLib.Error as e:
-        print("Installer: flatpak - could not get updated flatpak refs")
+        warn("Installer: flatpak - could not get updated flatpak refs")
         return []
 
     for ref in updates:
@@ -852,7 +852,7 @@ def generate_uncached_pkginfos(cache):
                     _add_package_to_cache(cache, ref, remote.get_url(), True)
 
     except GLib.Error as e:
-        print("Installer: flatpak - could not check for uncached pkginfos", e.message)
+        warn("Installer: flatpak - could not check for uncached pkginfos", e.message)
 
 def _ref_is_installed(kind, name, arch, branch):
     fp_sys = get_fp_sys()
@@ -893,7 +893,7 @@ def list_remotes():
             remotes.append(FlatpakRemoteInfo(remote))
 
     except GLib.Error as e:
-        print("Installer: flatpak - could not fetch remote list", e.message)
+        warn("Installer: flatpak - could not fetch remote list", e.message)
         remotes = []
 
     return remotes
@@ -908,7 +908,7 @@ def _pkginfo_from_file_thread(cache, file, callback):
     path = file.get_path()
 
     if path == None:
-        print("Installer: flatpak - no valid .flatpakref path provided")
+        warn("Installer: flatpak - no valid .flatpakref path provided")
         return None
 
     ref = None
@@ -933,7 +933,7 @@ def _pkginfo_from_file_thread(cache, file, callback):
                     branch = kf.get_string("Flatpak Ref", "Branch")
                 except GLib.Error as e:
                     if e.code == GLib.KeyFileError.KEY_NOT_FOUND:
-                        print("Installer: flatpak - flatpakref file doesn't have a Branch key, maybe nightly or testing.")
+                        warn("Installer: flatpak - flatpakref file doesn't have a Branch key, maybe nightly or testing.")
                         branch = None
 
                 remote_name = _get_remote_name_by_url(fp_sys, url)
@@ -944,22 +944,22 @@ def _pkginfo_from_file_thread(cache, file, callback):
                                             arch=Flatpak.get_default_arch(),
                                             branch=branch,
                                             name=name)
-                    print("Installer: flatpak - using existing remote '%s' for flatpakref file install" % remote_name)
+                    warn("Installer: flatpak - using existing remote '%s' for flatpakref file install" % remote_name)
                 else: #If Flatpakref is not installed already
                     try:
-                        print("Installer: flatpak - trying to install new remote for flatpakref file")
+                        warn("Installer: flatpak - trying to install new remote for flatpakref file")
                         ref = fp_sys.install_ref_file(gb, None)
                         fp_sys.drop_caches(None)
 
                         remote_name = ref.get_remote_name()
                         new_remote = True
-                        print("Installer: flatpak - added remote '%s'" % remote_name)
+                        warn("Installer: flatpak - added remote '%s'" % remote_name)
                     except GLib.Error as e:
                         if e.code != Gio.DBusError.ACCESS_DENIED: # user cancelling auth prompt for adding a remote
-                            print("Installer: could not add new remote to system: %s" % e.message)
+                            warn("Installer: could not add new remote to system: %s" % e.message)
                             dialogs.show_flatpak_error(e.message)
         except GLib.Error as e:
-            print("Installer: flatpak - could not parse flatpakref file: %s" % e.message)
+            warn("Installer: flatpak - could not parse flatpakref file: %s" % e.message)
             dialogs.show_flatpak_error(e.message)
 
         if ref:
@@ -1015,12 +1015,12 @@ def _pkginfo_from_file_thread(cache, file, callback):
                             for remote in fp_sys.list_remotes(None):
                                 # See comments below in _remote_from_repo_file_thread about get_noenumerate() use.
                                 if remote.get_url() == runtime_repo_url and not remote.get_noenumerate():
-                                    print("Installer: flatpak - runtime remote '%s' already in system, skipping" % runtime_remote_name)
+                                    warn("Installer: flatpak - runtime remote '%s' already in system, skipping" % runtime_remote_name)
                                     existing = True
                                     break
 
                             if not existing:
-                                print("Installer: Adding additional runtime remote named '%s' at '%s'" % (runtime_remote_name, runtime_repo_url))
+                                warn("Installer: Adding additional runtime remote named '%s' at '%s'" % (runtime_remote_name, runtime_repo_url))
 
                                 cmd_v = ['flatpak',
                                          'remote-add',
@@ -1034,7 +1034,7 @@ def _pkginfo_from_file_thread(cache, file, callback):
                                 fp_sys.drop_caches(None)
                         os.unlink(file.name)
             except GLib.Error as e:
-                print("Installer: could not process .flatpakref file: %s" % e.message)
+                warn("Installer: could not process .flatpakref file: %s" % e.message)
                 dialogs.show_flatpak_error(e.message)
 
     GLib.idle_add(callback, pkginfo, priority=GLib.PRIORITY_DEFAULT)
@@ -1047,7 +1047,7 @@ def _remote_from_repo_file_thread(cache, file, callback):
     try:
         path = Path(file.get_path())
     except TypeError:
-        print("Installer: flatpak - no valid .flatpakrepo path provided")
+        warn("Installer: flatpak - no valid .flatpakrepo path provided")
         return
 
     fp_sys = get_fp_sys()
@@ -1107,7 +1107,7 @@ def _get_repofile_repo_url(path):
 
             return url
     except GLib.Error as e:
-        print(e.message)
+        warn(e.message)
 
     return None
 
@@ -1136,7 +1136,7 @@ def _load_deploy_data(installed_ref):
     try:
         contents, etag = data_file.load_bytes(None)
     except GLib.Error as e:
-        print("Could not load deploy data: %s" % e.message)
+        warn("Could not load deploy data: %s" % e.message)
         return None
 
     deploy_data = GLib.Variant.new_from_bytes(FLATPAK_DEPLOY_DATA_GVARIANT_FORMAT, contents, False)
