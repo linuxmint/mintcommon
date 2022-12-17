@@ -1,3 +1,11 @@
+mint-common (2.2.5) vera; urgency=medium
+
+  [ Michael Webster ]
+  * installer: Clean up logging.
+  * Fix flatpak end-of-lifed-with-rebase signal.
+
+ -- Clement Lefebvre <root@linuxmint.com>  Sat, 17 Dec 2022 12:08:34 +0000
+
 mint-common (2.2.4) vera; urgency=medium
 
   [ Michael Webster ]
