@@ -163,8 +163,8 @@ class AptPkgInfo(PkgInfo):
             else:
                 self.version = apt_pkg.candidate.version
 
-            if self.version == None:
-                self.version = ""
+        if self.version == None:
+            self.version = ""
 
         return self.version
 

@@ -325,12 +325,12 @@ def _show_error_mainloop(message, parent_window):
     dialog.set_markup("<big><b>%s</b></big>" % text)
 
     scroller = Gtk.ScrolledWindow(min_content_height = 75, max_content_height=400, min_content_width=400, propagate_natural_height=True)
-    scroller.add(message_label)
     dialog.get_message_area().pack_start(scroller, False, False, 8)
 
     message_label = Gtk.Label(message, lines=20, wrap=True, wrap_mode=Pango.WrapMode.WORD_CHAR, selectable=True)
     message_label.set_max_width_chars(60)
     message_label.show()
+    scroller.add(message_label)
 
     dialog.show_all()
     dialog.run()
