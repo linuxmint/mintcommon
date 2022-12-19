@@ -1,3 +1,13 @@
+mint-common (2.2.6) vera; urgency=medium
+
+  [ Michael Webster ]
+  * Add workflow for actions.
+  * installer: Fix a couple of runtime errors.
+  * Fix error when there is a cache loading problem.
+  * Sanitize output from _apt.py.
+
+ -- Clement Lefebvre <root@linuxmint.com>  Mon, 19 Dec 2022 15:07:08 +0000
+
 mint-common (2.2.5) vera; urgency=medium
 
   [ Michael Webster ]
