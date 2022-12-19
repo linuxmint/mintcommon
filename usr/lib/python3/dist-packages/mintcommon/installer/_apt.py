@@ -15,7 +15,7 @@ from aptdaemon.gtk3widgets import AptProgressDialog
 
 from .pkgInfo import AptPkgInfo
 from .dialogs import ChangesConfirmDialog
-from .misc import check_ml
+from .misc import check_ml, warn, debug
 from . import dialogs
 
 # List extra packages that aren't necessarily marked in their control files, but
@@ -103,7 +103,7 @@ def process_full_apt_cache(cache):
             if "transitional" in pkg.candidate.summary.lower():
                 continue
         except Exception as e:
-            print("Problem parsing package (maybe it's virtual): %s: %s" % (name, e))
+            warn("Problem parsing package (maybe it's virtual): %s: %s" % (name, e))
             continue
             # pass
 
@@ -125,7 +125,7 @@ def process_full_apt_cache(cache):
 
         cache[pkg_hash] = AptPkgInfo(pkg_hash, pkg)
 
-    print('Installer: Processing APT packages for cache took %0.3f ms' % ((time.time() - apt_time) * 1000.0))
+    debug('Installer: Processing APT packages for cache took %0.3f ms' % ((time.time() - apt_time) * 1000.0))
 
     return cache, sections
 
@@ -172,7 +172,7 @@ def sync_cache_installed_states():
 def select_packages(task):
     task.transaction = MetaTransaction(task)
 
-    print("Installer: Calculating changes required for APT package: %s" % task.pkginfo.name)
+    debug("Installer: Calculating changes required for APT package: %s" % task.pkginfo.name)
 
 class MetaTransaction(packagekit.Task):
     def __init__(self, task):
@@ -213,7 +213,7 @@ class MetaTransaction(packagekit.Task):
                     None  # progress data
                 )
             elif self.task.type == "update":
-                print("todo update")
+                debug("todo update")
         except GLib.Error as e:
             self.on_transaction_error(e)
 
@@ -254,8 +254,8 @@ class MetaTransaction(packagekit.Task):
             exit_code = results.get_exit_code()
             pkerror = results.get_error_code()
             if pkerror:
-                print("Finished code: ", pkerror.get_code(), pkerror.get_details())
-            print("Exit code:", exit_code)
+                warn("Finished code: ", pkerror.get_code(), pkerror.get_details())
+            debug("Exit code:", exit_code)
 
         if self.task.error_message:
             self.task.call_error_cleanup_callback()
@@ -328,9 +328,9 @@ class MetaTransaction(packagekit.Task):
                     freed_size += calc_space(pkg)
                     remove_dbginfo.append("%s:%s (%s)" % (pkg.get_name(), pkg.get_arch(), pkg.get_version()))
 
-            print("For install:", install_dbginfo)
-            print("For removal:", remove_dbginfo)
-            print("For upgrade:", update_dbginfo)
+            debug("For install:", install_dbginfo)
+            debug("For removal:", remove_dbginfo)
+            debug("For upgrade:", update_dbginfo)
 
             self.task.download_size = self.simulated_download_size
 
@@ -347,7 +347,7 @@ class MetaTransaction(packagekit.Task):
                 apt_pkg_name = apt_cache["%s:%s" % (pkg.get_name(), pkg.get_arch())]
 
                 if self._is_critical_package(apt_cache[apt_pkg_name]):
-                    print("Installer: apt - cannot remove critical package: %s" % apt_pkg_name)
+                    warn("Installer: apt - cannot remove critical package: %s" % apt_pkg_name)
                     self.task.info_ready_status = self.task.STATUS_FORBIDDEN
 
             if self.task.info_ready_status not in (self.task.STATUS_FORBIDDEN, self.task.STATUS_BROKEN):

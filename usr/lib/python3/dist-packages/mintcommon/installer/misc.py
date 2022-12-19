@@ -31,16 +31,16 @@ def check_ml():
         tid = str(threading.get_ident())
     fid = inspect.stack()[1][3]
     on_ml = threading.current_thread() == threading.main_thread()
-    print("%s in thread: %s" % (fid, tid), flush=True, file=sys.stdout)
+    print("%s in thread: %s" % (fid, tid), flush=True, file=sys.stderr)
 
 def debug(*args):
     if not DEBUG_MODE:
         return
-    sanitized = [arg for arg in args if arg is not None]
+    sanitized = [str(arg) for arg in args if arg is not None]
     argstr = " ".join(sanitized)
     print("mint-common (DEBUG): %s" % argstr, file=sys.stderr, flush=True)
 
 def warn(*args):
-    sanitized = [arg for arg in args if arg is not None]
+    sanitized = [str(arg) for arg in args if arg is not None]
     argstr = " ".join(sanitized)
     print("mint-common (WARN): %s" % argstr, file=sys.stderr, flush=True)
