@@ -200,7 +200,7 @@ class PkgCache(object):
                 sections = json_obj.section_lists
                 flatpak_remote_infos = json_obj.flatpak_remote_infos
         except Exception as e:
-            warn("Installer: Error loading pkginfo cache:", e)
+            warn("Installer: Error loading pkginfo cache:", str(e))
             cache = None
 
         if cache == None:
