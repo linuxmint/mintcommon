@@ -517,6 +517,9 @@ class FlatpakTransaction():
             if error.code in (Flatpak.Error.ABORTED, Gio.IOErrorEnum.CANCELLED):
                 return
 
+        if self.task.info_ready_status == self.task.STATUS_NONE:
+            self.task.info_ready_status = self.task.STATUS_UNKNOWN
+
         if not self.transaction_ready:
             self.task.handle_error(error, info_stage=True)
         else:
