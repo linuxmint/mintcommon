@@ -36,7 +36,7 @@ class PkgInfo:
         self.summary = None
         self.description = None
         self.version = None
-        self.icon = None
+        self.icon = {}
         self.screenshots = []
         self.homepage_url = None
         self.help_url = None
@@ -125,28 +125,30 @@ class AptPkgInfo(PkgInfo):
         return self.description
 
     def get_icon(self, pkginfo, apt_pkg=None, size=64):
-        if self.icon:
-            return self.icon
+        try:
+            return self.icon[size]
+        except:
+            pass
 
         # Look in app-install-data and pixmaps
         for extension in ['svg', 'png', 'xpm']:
             for suffix in ['', '-icon']:
                 icon_path = "/usr/share/app-install/icons/%s%s.%s" % (pkginfo.name, suffix, extension)
                 if os.path.exists(icon_path):
-                    self.icon = icon_path
-                    return self.icon
+                    self.icon[size] = icon_path
+                    return self.icon[size]
 
                 icon_path = "/usr/share/pixmaps/%s.%s" % (pkginfo.name, extension)
                 if os.path.exists(icon_path):
-                    self.icon = icon_path
-                    return self.icon
+                    self.icon[size] = icon_path
+                    return self.icon[size]
 
         theme = Gtk.IconTheme.get_default()
 
         for name in [pkginfo.name, pkginfo.name.split(":")[0], pkginfo.name.split("-")[0], pkginfo.name.split(".")[-1].lower()]:
             if theme.has_icon(name):
-                self.icon = name
-                return self.icon
+                self.icon[size] = name
+                return self.icon[size]
 
         return None
 
@@ -289,39 +291,47 @@ class FlatpakPkgInfo(PkgInfo):
         return self.description
 
     def get_icon(self, pkginfo, as_component=None, size=64):
-        if self.icon:
-            return self.icon
+        try:
+            return self.icon[size]
+        except:
+            pass
 
         if as_component:
             icons = as_component.get_icons()
 
             if icons:
                 icon_to_use = None
-                first_icon = None
+                remote_icon = None
+                first_local_icon = None
+                good_size_icon = None
 
                 for icon in icons:
-                    if first_icon == None:
-                        first_icon = icon
+                    if icon.get_kind() == AppStreamGlib.IconKind.REMOTE:
+                        remote_icon = icon
+                        continue
 
-                    if icon.get_height() == size:
-                        icon_to_use = icon
-                        break
+                    if icon.get_kind() in (AppStreamGlib.IconKind.LOCAL,  \
+                                           AppStreamGlib.IconKind.CACHED, \
+                                           AppStreamGlib.IconKind.STOCK):
+                        first_local_icon = icon
+                        if icon.get_height() == size or ("%dx%d" % (size, size)) in icon.get_prefix():
+                            good_size_icon = icon
+                            break
 
-                if icon_to_use == None:
-                    icon_to_use = first_icon
+                icon_to_use = good_size_icon or first_local_icon or remote_icon
+                kind = icon_to_use.get_kind()
 
-                if icon_to_use.get_kind() in (AppStreamGlib.IconKind.LOCAL, AppStreamGlib.IconKind.CACHED):
-                    self.icon = os.path.join(icon_to_use.get_prefix(), icon_to_use.get_name())
-                elif icon_to_use.get_kind() == AppStreamGlib.IconKind.REMOTE:
-                    self.icon = icon_to_use.get_url()
-                elif icon_to_use.get_kind() == AppStreamGlib.IconKind.STOCK:
-                    self.icon = icon_to_use.get_name()
+                if kind in (AppStreamGlib.IconKind.LOCAL, AppStreamGlib.IconKind.CACHED):
+                    self.icon[size] = os.path.join(icon_to_use.get_prefix(), icon_to_use.get_name())
+                elif kind == AppStreamGlib.IconKind.REMOTE:
+                    self.icon[size] = icon_to_use.get_url()
+                elif kind == AppStreamGlib.IconKind.STOCK:
+                    self.icon[size] = icon_to_use.get_name()
 
-        if self.icon == None:
-            self.icon == ""
+        try:
+            return self.icon[size]
+        except:
             return None
-
-        return self.icon
 
     def get_screenshots(self, as_component=None):
         if len(self.screenshots) > 0:
