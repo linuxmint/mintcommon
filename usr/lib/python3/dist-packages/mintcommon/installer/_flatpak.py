@@ -735,12 +735,10 @@ class FlatpakTransaction():
                 additional = True
 
         if additional:
-            Gdk.threads_enter()
             dia = ChangesConfirmDialog(None, self.task, parent=self.task.parent_window)
             res = dia.run()
             dia.hide()
             dia.destroy()
-            Gdk.threads_leave()
             return res == Gtk.ResponseType.OK
         else:
             return True
