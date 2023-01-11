@@ -1,3 +1,12 @@
+mint-common (2.2.7) vera; urgency=medium
+
+  [ Michael Webster ]
+  * flatpaks: Prefer using a locally stored icon over a remote one, and return an icon of the correct size.
+  * flatpaks: Set the task status to unknown upon any error condition not already handled, so mintinstall knows how to react.
+  * _flatpak.py: Don't use gdk_threads_enter/leave.
+
+ -- Clement Lefebvre <root@linuxmint.com>  Wed, 11 Jan 2023 11:34:11 +0000
+
 mint-common (2.2.6) vera; urgency=medium
 
   [ Michael Webster ]
