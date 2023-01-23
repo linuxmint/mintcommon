@@ -228,6 +228,8 @@ def _initialize_appstream_thread():
 
         try:
             for remote in fp_sys.list_remotes():
+                if remote.get_noenumerate():
+                    continue
                 _load_appstream_pool(remote)
         except (GLib.Error, Exception) as e:
             try:
