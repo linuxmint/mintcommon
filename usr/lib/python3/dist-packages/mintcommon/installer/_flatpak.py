@@ -68,7 +68,7 @@ _as_pools = {} # keyed to remote name
 def get_fp_sys():
     global _fp_sys
 
-    if _fp_sys == None:
+    if _fp_sys is None:
         _fp_sys = Flatpak.Installation.new_system(None)
 
     return _fp_sys
@@ -753,7 +753,7 @@ class FlatpakTransaction():
         if self.task.cancellable.is_cancelled():
             return False
 
-        if self.task.client_progress_cb != None:
+        if self.task.client_progress_cb is not None:
             self.task.has_window = True
             GLib.idle_add(self.task.client_progress_cb, self.task.pkginfo, 0, True, " : ")
         else:
@@ -919,7 +919,7 @@ def _pkginfo_from_file_thread(cache, file, callback):
 
     path = file.get_path()
 
-    if path == None:
+    if path is None:
         warn("Installer: flatpak - no valid .flatpakref path provided")
         return None
 

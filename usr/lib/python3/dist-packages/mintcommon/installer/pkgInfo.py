@@ -97,7 +97,7 @@ class AptPkgInfo(PkgInfo):
 
                 self.summary = capitalize(summary)
 
-        if self.summary == None:
+        if self.summary is None:
             self.summary = ""
 
         return self.summary
@@ -111,7 +111,7 @@ class AptPkgInfo(PkgInfo):
             candidate = apt_pkg.candidate
 
             description = ""
-            if candidate.description != None:
+            if candidate.description is not None:
                 description = candidate.description
                 description = description.replace("<p>", "").replace("</p>", "\n")
                 for tags in ["<ul>", "</ul>", "<li>", "</li>"]:
@@ -119,7 +119,7 @@ class AptPkgInfo(PkgInfo):
 
                 self.description = capitalize(description)
 
-        if self.description == None:
+        if self.description is None:
             self.description = ""
 
         return self.description
@@ -165,7 +165,7 @@ class AptPkgInfo(PkgInfo):
             else:
                 self.version = apt_pkg.candidate.version
 
-        if self.version == None:
+        if self.version is None:
             self.version = ""
 
         return self.version
@@ -180,7 +180,7 @@ class AptPkgInfo(PkgInfo):
             else:
                 self.homepage_url = apt_pkg.candidate.homepage
 
-        if self.homepage_url == None:
+        if self.homepage_url is None:
             self.homepage_url = ""
 
         return self.homepage_url
@@ -247,10 +247,10 @@ class FlatpakPkgInfo(PkgInfo):
         if as_component:
             display_name = as_component.get_name()
 
-            if display_name != None:
+            if display_name is not None:
                 self.display_name = capitalize(display_name)
 
-        if self.display_name == None:
+        if self.display_name is None:
             self.display_name = self.name
 
         return self.display_name
@@ -263,10 +263,10 @@ class FlatpakPkgInfo(PkgInfo):
         if as_component:
             summary = as_component.get_comment()
 
-            if summary != None:
+            if summary is not None:
                 self.summary = summary
 
-        if self.summary == None:
+        if self.summary is None:
             self.summary = ""
 
         return self.summary
@@ -279,13 +279,13 @@ class FlatpakPkgInfo(PkgInfo):
         if as_component:
             description = as_component.get_description()
 
-            if description != None:
+            if description is not None:
                 description = description.replace("<p>", "").replace("</p>", "\n")
                 for tags in ["<ul>", "</ul>", "<li>", "</li>"]:
                     description = description.replace(tags, "")
                 self.description = capitalize(description)
 
-        if self.description == None:
+        if self.description is None:
             self.description = ""
 
         return self.description
@@ -357,7 +357,7 @@ class FlatpakPkgInfo(PkgInfo):
                 if version:
                     self.version = version
 
-        if self.version == None:
+        if self.version is None:
             self.version = ""
 
         return self.version
@@ -369,7 +369,7 @@ class FlatpakPkgInfo(PkgInfo):
         if as_component:
             url = as_component.get_url_item(AppStreamGlib.UrlKind.HOMEPAGE)
 
-            if url != None:
+            if url is not None:
                 self.homepage_url = url
 
         return self.homepage_url
@@ -381,10 +381,10 @@ class FlatpakPkgInfo(PkgInfo):
         if as_component:
             url = as_component.get_url_item(AppStreamGlib.UrlKind.HELP)
 
-            if url != None:
+            if url is not None:
                 self.help_url = url
 
-        if self.help_url == None:
+        if self.help_url is None:
             self.help_url = ""
 
         return self.help_url

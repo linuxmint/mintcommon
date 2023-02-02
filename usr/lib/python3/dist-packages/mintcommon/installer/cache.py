@@ -64,7 +64,7 @@ class PkgCache(object):
         self.status = self.STATUS_EMPTY
         self.cache_content = pkg_type
 
-        if cache_path != None:
+        if cache_path is not None:
             self.custom_cache_path = Path(cache_path)
         else:
             self.custom_cache_path = None
@@ -140,7 +140,7 @@ class PkgCache(object):
 
     def _get_best_load_path(self):
         # If a custom path is set, always regenerate the cache.
-        if self.custom_cache_path != None:
+        if self.custom_cache_path is not None:
             return None 
 
         try:
@@ -203,13 +203,13 @@ class PkgCache(object):
             warn("Installer: Error loading pkginfo cache:", str(e))
             cache = None
 
-        if cache == None:
+        if cache is None:
             raise CacheLoadingException
 
         return cache, sections, flatpak_remote_infos
 
     def _get_best_save_path(self):
-        if self.custom_cache_path != None:
+        if self.custom_cache_path is not None:
             return self.custom_cache_path 
 
         best_path = None
@@ -275,7 +275,7 @@ class PkgCache(object):
     def _generate_cache_thread(self, callback=None):
         self._new_cache_common()
 
-        if callback != None:
+        if callback is not None:
             GObject.idle_add(callback)
 
     def get_subset_of_type(self, pkg_type):
@@ -294,13 +294,13 @@ class PkgCache(object):
         if pkg_type in (None, "a"):
             pkginfo = _apt.find_pkginfo(self, string)
 
-            if pkginfo != None:
+            if pkginfo is not None:
                 return pkginfo
 
         if self.have_flatpak:
             if pkg_type in (None, "f"):
                 pkginfo = _flatpak.find_pkginfo(self, string, remote)
-                if pkginfo != None:
+                if pkginfo is not None:
                     return pkginfo
 
         return None
