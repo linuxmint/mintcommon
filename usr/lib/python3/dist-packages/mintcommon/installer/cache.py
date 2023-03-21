@@ -13,6 +13,7 @@ from . import _flatpak
 from ._flatpak import FlatpakRemoteInfo
 from .pkgInfo import FlatpakPkgInfo, AptPkgInfo
 from .misc import print_timing, debug, warn
+from typing import Optional
 
 SYS_CACHE_PATH = "/var/cache/mintinstall/pkginfo.json"
 USER_CACHE_PATH = os.path.join(GLib.get_user_cache_dir(), "mintinstall", "pkginfo.json")
@@ -208,27 +209,23 @@ class PkgCache(object):
 
         return cache, sections, flatpak_remote_infos
 
-    def _get_best_save_path(self):
+    def _get_best_save_path(self) -> Optional[Path]:
         if self.custom_cache_path is not None:
-            return self.custom_cache_path 
-
-        best_path = None
+            return self.custom_cache_path
 
         # Prefer the system location, as all users can access it
         try:
             path = Path(SYS_CACHE_PATH)
             path.parent.mkdir(parents=True, exist_ok=True)
             path.touch(exist_ok=True)
+            return path
         except PermissionError:
             try:
                 path = Path(USER_CACHE_PATH)
                 path.parent.mkdir(parents=True, exist_ok=True)
+                return path
             except Exception:
-                path = None
-        finally:
-            best_path = path
-
-        return best_path
+                return None
 
     def _save_cache(self, to_be_json):
         path = self._get_best_save_path()
