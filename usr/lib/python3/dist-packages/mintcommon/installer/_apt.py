@@ -20,7 +20,7 @@ from . import dialogs
 
 # List extra packages that aren't necessarily marked in their control files, but
 # we know better...
-CRITICAL_PACKAGES = ["mint-common", "mint-meta-core", "mintdesktop", "python3"]
+CRITICAL_PACKAGES = ["mint-common", "mint-meta-core", "mintdesktop", "python3", "perl"]
 
 def capitalize(string):
     if len(string) > 1:
@@ -244,7 +244,10 @@ class MetaTransaction(packagekit.Task):
             self.task.info_ready_status = self.task.STATUS_FORBIDDEN
 
         if self.task.info_ready_status == self.task.STATUS_NONE:
-            self.task.info_ready_status = self.task.STATUS_UNKNOWN
+            if real_code == packagekit.ErrorEnum.DEP_RESOLUTION_FAILED:
+                self.task.info_ready_status = self.task.STATUS_BROKEN
+            else:
+                self.task.info_ready_status = self.task.STATUS_UNKNOWN
 
         self.task.handle_error(error, info_stage = self.get_simulate())
 
