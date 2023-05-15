@@ -197,8 +197,13 @@ class InstallerTask:
         else:
             self.error_cleanup_cb(self)
 
-class Installer:
+class Installer(GObject.Object):
+    __gsignals__ = {
+        'appstream-changed': (GObject.SignalFlags.RUN_LAST, None, ()),
+    }
     def __init__(self, pkg_type=PKG_TYPE_ALL, temp=False):
+        GObject.Object.__init__(self)
+
         self.tasks = {}
         self.pkg_type = pkg_type
 
@@ -253,7 +258,7 @@ class Installer:
         if self.cache.status == self.cache.STATUS_OK and not self.remotes_changed:
             self.inited = True
 
-            GObject.idle_add(self.initialize_appstream)
+            self.initialize_appstream()
             self.generate_uncached_pkginfos(self.cache)
 
             return True
@@ -302,7 +307,7 @@ class Installer:
             self._store_remotes()
             self.remotes_changed = False
 
-        GObject.idle_add(self.initialize_appstream)
+        self.initialize_appstream()
 
         self.generate_uncached_pkginfos(self.cache)
 
@@ -531,8 +536,11 @@ class Installer:
         display info for packages.
         """
         if self.have_flatpak:
-            _flatpak.initialize_appstream()
+            _flatpak.initialize_appstream(self.on_appstream_loaded)
         # Is there any reason to use apt's appstream?
+
+    def on_appstream_loaded(self):
+        self.emit("appstream-changed")
 
     def get_appstream_app_for_pkginfo(self, pkginfo):
         try:

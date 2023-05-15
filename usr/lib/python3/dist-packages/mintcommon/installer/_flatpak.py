@@ -213,11 +213,11 @@ def _load_appstream_pool(remote):
 
     _as_pools[remote.get_name()] = pool
 
-def initialize_appstream():
-    thread = threading.Thread(target=_initialize_appstream_thread)
+def initialize_appstream(cb=None):
+    thread = threading.Thread(target=_initialize_appstream_thread, args=(cb,))
     thread.start()
 
-def _initialize_appstream_thread():
+def _initialize_appstream_thread(cb):
     fp_sys = get_fp_sys()
 
     global _as_pools
@@ -237,6 +237,8 @@ def _initialize_appstream_thread():
             except:
                 msg = str(e)
             warn("Installer: Could not initialize appstream components for flatpaks: %s" % msg)
+
+    GLib.idle_add(cb)
 
 def get_remote_or_installed_ref(ref, remote_name):
     fp_sys = get_fp_sys()
