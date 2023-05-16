@@ -130,6 +130,13 @@ class AptPkgInfo(PkgInfo):
         except:
             pass
 
+        theme = Gtk.IconTheme.get_default()
+
+        for name in [pkginfo.name, pkginfo.name.split(":")[0], pkginfo.name.split("-")[0], pkginfo.name.split(".")[-1].lower()]:
+            if theme.has_icon(name):
+                self.icon[size] = name
+                return self.icon[size]
+
         # Look in app-install-data and pixmaps
         for extension in ['svg', 'png', 'xpm']:
             for suffix in ['', '-icon']:
@@ -142,13 +149,6 @@ class AptPkgInfo(PkgInfo):
                 if os.path.exists(icon_path):
                     self.icon[size] = icon_path
                     return self.icon[size]
-
-        theme = Gtk.IconTheme.get_default()
-
-        for name in [pkginfo.name, pkginfo.name.split(":")[0], pkginfo.name.split("-")[0], pkginfo.name.split(".")[-1].lower()]:
-            if theme.has_icon(name):
-                self.icon[size] = name
-                return self.icon[size]
 
         return None
 
