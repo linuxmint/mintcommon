@@ -1,3 +1,21 @@
+mint-common (2.2.8) victoria; urgency=medium
+
+  [ Michael Webster ]
+  * flatpaks: Skip no-enumerate remotes when loading appstream data.
+
+  [ hduelme ]
+  * replace equality None check with identity None check (#51)
+  * prevent NameError in process_full_apt_cache (#54)
+  * refactor _get_best_save_path (#55)
+
+  [ Michael Webster ]
+  * apt: Catch broken dependency errors and use a more appropriate task state.
+  * installer: Add a signal for when appstream is updated.
+  * installer: Make appstream callback optional.
+  * pkgInfo.py: Check the theme for APT app icons before looking in legacy locations.
+
+ -- Clement Lefebvre <root@linuxmint.com>  Mon, 05 Jun 2023 13:32:11 +0100
+
 mint-common (2.2.7) vera; urgency=medium
 
   [ Michael Webster ]
