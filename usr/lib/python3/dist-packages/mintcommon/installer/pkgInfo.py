@@ -315,18 +315,27 @@ class FlatpakPkgInfo(PkgInfo):
                                            AppStreamGlib.IconKind.STOCK):
                         first_local_icon = icon
                         if icon.get_height() == size or ("%dx%d" % (size, size)) in icon.get_prefix():
+                            test_path = os.path.join(icon.get_prefix(), icon.get_name())
+                            if not os.path.exists(test_path):
+                                continue
+
                             good_size_icon = icon
                             break
 
                 icon_to_use = good_size_icon or first_local_icon or remote_icon
                 kind = icon_to_use.get_kind()
 
-                if kind in (AppStreamGlib.IconKind.LOCAL, AppStreamGlib.IconKind.CACHED):
-                    self.icon[size] = os.path.join(icon_to_use.get_prefix(), icon_to_use.get_name())
-                elif kind == AppStreamGlib.IconKind.REMOTE:
-                    self.icon[size] = icon_to_use.get_url()
-                elif kind == AppStreamGlib.IconKind.STOCK:
-                    self.icon[size] = icon_to_use.get_name()
+                if icon_to_use is not None:
+                    if kind in (AppStreamGlib.IconKind.LOCAL, AppStreamGlib.IconKind.CACHED):
+                        self.icon[size] = os.path.join(icon_to_use.get_prefix(), icon_to_use.get_name())
+                    elif kind == AppStreamGlib.IconKind.REMOTE:
+                        self.icon[size] = icon_to_use.get_url()
+                    elif kind == AppStreamGlib.IconKind.STOCK:
+                        self.icon[size] = icon_to_use.get_name()
+                else:
+                    # All else fails, try using the package's name (which icon names should match for flatpaks).
+                    # You may end up with a third-party icon, but it's better than none.
+                    self.icon[size] = pkginfo.name
 
         try:
             return self.icon[size]
