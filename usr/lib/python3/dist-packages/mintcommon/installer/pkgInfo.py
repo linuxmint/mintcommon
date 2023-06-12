@@ -8,6 +8,9 @@ gi.require_version("AppStreamGlib", "1.0")
 gi.require_version("Gtk", "3.0")
 from gi.repository import AppStreamGlib, Gtk
 
+# this should hopefully be supplied by remote info someday.
+FLATHUB_MEDIA_BASE_URL = "https://dl.flathub.org/media/"
+
 def capitalize(string):
     if string and len(string) > 1:
         return (string[0].upper() + string[1:])
@@ -302,7 +305,7 @@ class FlatpakPkgInfo(PkgInfo):
             if icons:
                 icon_to_use = None
                 remote_icon = None
-                first_local_icon = None
+                local_exists_icon = None
                 good_size_icon = None
 
                 for icon in icons:
@@ -313,25 +316,27 @@ class FlatpakPkgInfo(PkgInfo):
                     if icon.get_kind() in (AppStreamGlib.IconKind.LOCAL,  \
                                            AppStreamGlib.IconKind.CACHED, \
                                            AppStreamGlib.IconKind.STOCK):
-                        first_local_icon = icon
-                        if icon.get_height() == size or ("%dx%d" % (size, size)) in icon.get_prefix():
-                            test_path = os.path.join(icon.get_prefix(), icon.get_name())
-                            if not os.path.exists(test_path):
-                                continue
+                        test_path = os.path.join(icon.get_prefix(), icon.get_name())
+                        if not os.path.exists(test_path):
+                            continue
+                        else:
+                            local_exists_icon = icon
 
+                        if size <= icon.get_height() or ("%dx%d" % (size, size)) in icon.get_prefix():
                             good_size_icon = icon
                             break
 
-                icon_to_use = good_size_icon or first_local_icon or remote_icon
-                kind = icon_to_use.get_kind()
-
+                icon_to_use = good_size_icon or local_exists_icon or remote_icon
                 if icon_to_use is not None:
-                    if kind in (AppStreamGlib.IconKind.LOCAL, AppStreamGlib.IconKind.CACHED):
+                    kind = icon_to_use.get_kind()
+
+                    if kind != AppStreamGlib.IconKind.REMOTE:
                         self.icon[size] = os.path.join(icon_to_use.get_prefix(), icon_to_use.get_name())
-                    elif kind == AppStreamGlib.IconKind.REMOTE:
-                        self.icon[size] = icon_to_use.get_url()
-                    elif kind == AppStreamGlib.IconKind.STOCK:
-                        self.icon[size] = icon_to_use.get_name()
+                    else:
+                        url = icon_to_use.get_url()
+                        if not url.startswith("http") and self.remote == "flathub":
+                            url = FLATHUB_MEDIA_BASE_URL + url
+                        self.icon[size] = url
                 else:
                     # All else fails, try using the package's name (which icon names should match for flatpaks).
                     # You may end up with a third-party icon, but it's better than none.
