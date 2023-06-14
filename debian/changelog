@@ -1,3 +1,11 @@
+mint-common (2.2.9) victoria; urgency=medium
+
+  [ Michael Webster ]
+  * installer: Check if a local flatpak icon exists before trying to use it.
+  * More rework for flatpak icons.
+
+ -- Clement Lefebvre <root@linuxmint.com>  Wed, 14 Jun 2023 09:21:28 +0200
+
 mint-common (2.2.8) victoria; urgency=medium
 
   [ Michael Webster ]
