@@ -20,7 +20,7 @@ from . import dialogs
 
 # List extra packages that aren't necessarily marked in their control files, but
 # we know better...
-CRITICAL_PACKAGES = ["mint-common", "mint-meta-core", "mintdesktop", "python3", "perl"]
+CRITICAL_PACKAGES = ["mint-common", "mint-translations", "mint-meta-core", "mintdesktop", "python3", "perl"]
 
 def capitalize(string):
     if len(string) > 1:
