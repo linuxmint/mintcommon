@@ -1,3 +1,10 @@
+mint-common (2.3.0) victoria; urgency=medium
+
+  [ Michael Webster ]
+  * installer: Add mint-translations to critical packages.
+
+ -- Clement Lefebvre <root@linuxmint.com>  Mon, 26 Jun 2023 11:17:06 +0200
+
 mint-common (2.2.9) victoria; urgency=medium
 
   [ Michael Webster ]
