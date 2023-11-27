@@ -1,3 +1,10 @@
+mint-common (2.3.1) virginia; urgency=medium
+
+  [ Michael Webster ]
+  * _flatpak.py: Fix end-of-lifed-with-rebase handling.
+
+ -- Clement Lefebvre <root@linuxmint.com>  Mon, 27 Nov 2023 13:52:36 +0000
+
 mint-common (2.3.0) victoria; urgency=medium
 
   [ Michael Webster ]
