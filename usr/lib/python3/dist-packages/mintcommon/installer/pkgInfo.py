@@ -4,9 +4,9 @@ if sys.version_info.major < 3:
 import os
 
 import gi
-gi.require_version("AppStreamGlib", "1.0")
+gi.require_version("AppStream", "1.0")
 gi.require_version("Gtk", "3.0")
-from gi.repository import AppStreamGlib, Gtk
+from gi.repository import AppStream, Gtk
 
 # this should hopefully be supplied by remote info someday.
 FLATHUB_MEDIA_BASE_URL = "https://dl.flathub.org/media/"
@@ -264,7 +264,7 @@ class FlatpakPkgInfo(PkgInfo):
             return self.summary
 
         if as_component:
-            summary = as_component.get_comment()
+            summary = as_component.get_summary()
 
             if summary is not None:
                 self.summary = summary
@@ -309,15 +309,15 @@ class FlatpakPkgInfo(PkgInfo):
                 good_size_icon = None
 
                 for icon in icons:
-                    if icon.get_kind() == AppStreamGlib.IconKind.REMOTE:
+                    if icon.get_kind() == AppStream.IconKind.REMOTE:
                         remote_icon = icon
                         continue
 
-                    if icon.get_kind() in (AppStreamGlib.IconKind.LOCAL,  \
-                                           AppStreamGlib.IconKind.CACHED, \
-                                           AppStreamGlib.IconKind.STOCK):
                         test_path = os.path.join(icon.get_prefix(), icon.get_name())
                         if not os.path.exists(test_path):
+                    if icon.get_kind() in (AppStream.IconKind.LOCAL,  \
+                                           AppStream.IconKind.CACHED, \
+                                           AppStream.IconKind.STOCK):
                             continue
                         else:
                             local_exists_icon = icon
@@ -330,8 +330,8 @@ class FlatpakPkgInfo(PkgInfo):
                 if icon_to_use is not None:
                     kind = icon_to_use.get_kind()
 
-                    if kind != AppStreamGlib.IconKind.REMOTE:
                         self.icon[size] = os.path.join(icon_to_use.get_prefix(), icon_to_use.get_name())
+                    if kind != AppStream.IconKind.REMOTE:
                     else:
                         url = icon_to_use.get_url()
                         if not url.startswith("http") and self.remote == "flathub":
@@ -352,7 +352,11 @@ class FlatpakPkgInfo(PkgInfo):
             return self.screenshots
 
         if as_component:
-            self.screenshots = as_component.get_screenshots()
+            # compatibility with libappstream < 1.0.0
+            try:
+                self.screenshots = as_component.get_screenshots_all()
+            except AttributeError:
+                self.screenshots = as_component.get_screenshots()
 
         return self.screenshots
 
@@ -362,7 +366,12 @@ class FlatpakPkgInfo(PkgInfo):
             return self.version
 
         if as_component:
-            releases = as_component.get_releases()
+            # compatibility with libappstream < 1.0.0
+            try:
+
+                releases = as_component.get_releases_plain().get_entries()
+            except AttributeError:
+                releases = as_component.get_releases()
 
             if len(releases) > 0:
                 releases.sort(key=lambda r: r.get_timestamp(), reverse=True)
@@ -381,7 +390,7 @@ class FlatpakPkgInfo(PkgInfo):
             return self.homepage_url
 
         if as_component:
-            url = as_component.get_url_item(AppStreamGlib.UrlKind.HOMEPAGE)
+            url = as_component.get_url(AppStream.UrlKind.HOMEPAGE)
 
             if url is not None:
                 self.homepage_url = url
@@ -393,7 +402,7 @@ class FlatpakPkgInfo(PkgInfo):
             return self.help_url
 
         if as_component:
-            url = as_component.get_url_item(AppStreamGlib.UrlKind.HELP)
+            url = as_component.get_url(AppStream.UrlKind.HELP)
 
             if url is not None:
                 self.help_url = url

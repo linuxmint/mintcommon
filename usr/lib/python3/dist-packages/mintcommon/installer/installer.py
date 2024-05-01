@@ -4,7 +4,6 @@ import time
 import tempfile
 
 import gi
-gi.require_version('AppStreamGlib', '1.0')
 gi.require_version('Gtk', '3.0')
 from gi.repository import GLib, GObject, Gio, Gtk
 
@@ -536,36 +535,25 @@ class Installer(GObject.Object):
         display info for packages.
         """
         if self.have_flatpak:
-            _flatpak.initialize_appstream(self.on_appstream_loaded)
-        # Is there any reason to use apt's appstream?
+            _flatpak.initialize_appstream(cb=self.on_appstream_loaded)
+
+        # Open the apt cache while we're in a thread.
+        _apt.get_apt_cache()
 
     def on_appstream_loaded(self):
         self.emit("appstream-changed")
 
-    def get_appstream_app_for_pkginfo(self, pkginfo):
-        try:
-            backend_component = self.backend_table[pkginfo]
+    def get_appstream_app_for_pkginfo(self, pkginfo, resolve_addons=False):
+        backend_component = None
 
-            return backend_component
-        except KeyError:
-            if pkginfo.pkg_hash.startswith("a"):
-                backend_component = _apt.search_for_pkginfo_apt_pkg(pkginfo)
-            else:
-                if self.have_flatpak:
-                    backend_component = _flatpak.search_for_pkginfo_as_component(pkginfo)
-
+        if pkginfo.pkg_hash.startswith("a"):
+            backend_component = _apt.search_for_pkginfo_apt_pkg(pkginfo)
             if backend_component is not None:
                 self.backend_table[pkginfo] = backend_component
+        else:
+            backend_component = _flatpak.search_for_pkginfo_as_component(pkginfo, resolve_addons)
 
-            # It's possible at some point we'll refresh appstream at runtime, if so we'll
-            # want to clear cached data so it can be re-fetched anew.  For now there's
-            # no need. The only possible case is on-demand adding of a remote (from
-            # launching a .flatpakref file), and in this case, we won't have had anything
-            # cached for it to clear anyhow.
-
-            # pkginfo.clear_cached_info()
-
-            return backend_component
+        return backend_component
 
     def get_flatpak_launchables(self, pkginfo):
         """
@@ -599,15 +587,13 @@ class Installer(GObject.Object):
         """
         Returns an array of app ids of names of available addons
         """
-        
         if pkginfo.pkg_hash.startswith("a"):
             return None
 
-        comp = self.get_appstream_app_for_pkginfo(pkginfo)
+        comp = self.get_appstream_app_for_pkginfo(pkginfo, resolve_addons=True)
 
         if comp is None:
             return None
-
         addons = comp.get_addons()
 
         if len(addons) == 0:

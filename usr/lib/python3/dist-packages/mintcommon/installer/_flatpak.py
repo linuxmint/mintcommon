@@ -9,9 +9,10 @@ import tempfile
 import os
 
 import gi
-gi.require_version('AppStreamGlib', '1.0')
+gi.require_version('AppStream', '1.0')
 gi.require_version('Gtk', '3.0')
-from gi.repository import AppStreamGlib, GLib, GObject, Gtk, Gio, Gdk
+gi.require_version('Xmlb', '2.0')
+from gi.repository import AppStream, GLib, GObject, Gtk, Gio, Gdk, Xmlb
 
 try:
     gi.require_version('Flatpak', '1.0')
@@ -62,9 +63,6 @@ class FlatpakRemoteInfo():
 
 _fp_sys = None
 
-_as_pool_lock = threading.Lock()
-_as_pools = {} # keyed to remote name
-
 def get_fp_sys():
     global _fp_sys
 
@@ -75,6 +73,114 @@ def get_fp_sys():
 
 ALIASES = {
 }
+
+pools = {}
+
+class Pool():
+    def __init__(self, remote):
+        self.remote = remote
+
+        self.as_pool = None
+        self.app_dict = {}
+        self.xmlb_silo = None
+
+        self._load_pool()
+
+    def lookup_component(self, pkginfo, resolve_addons):
+        comp = None
+
+        if not resolve_addons:
+            try:
+                comp = self.app_dict[pkginfo.name]
+            except KeyError:
+                pass
+        else:
+            # RESOLVE_ADDONS adds a lot of time to normal lookups, so only
+            # use this when we actually want to see addons. Fortunately the
+            # flag can be added just for a single lookup, then removed.
+            self.as_pool.add_flags(AppStream.PoolFlags.RESOLVE_ADDONS)
+
+            # compatibility with libappstream < 1.0.0
+            try:
+                components = self.as_pool.get_components_by_id(pkginfo.name).as_array()
+            except AttributeError:
+                components = self.as_pool.get_components_by_id(pkginfo.name)
+
+            try:
+                comp = components[0]
+            except:
+                pass
+            self.as_pool.remove_flags(AppStream.PoolFlags.RESOLVE_ADDONS)
+
+        return comp
+
+    def _load_pool(self):
+        pool = AppStream.Pool()
+        remote_name = self.remote.get_name()
+
+        try:
+            pool.set_load_std_data_locations(False)
+            pool.set_flags(
+                AppStream.PoolFlags.LOAD_FLATPAK |
+                AppStream.PoolFlags.MONITOR
+            )
+            pool.load()
+            self.as_pool = pool
+
+            # compatibility with libappstream < 1.0.0
+            try:
+                comps = pool.get_components().as_array()
+            except AttributeError:
+                comps = pool.get_components()
+
+            for comp in comps:
+                comp_id = comp.get_id()
+
+                if comp_id.endswith(".desktop"):
+                    self.app_dict[comp_id] = comp
+                    comp_id = comp_id[0:-8]
+                self.app_dict[comp_id] = comp
+
+        except Exception as e:
+            warn("Could not load appstream info for remote '%s': %s" % (remote_name, str(e)))
+            return
+
+    def _load_xmlb_silo(self):
+        xml_file = self.remote.get_appstream_dir().get_child("appstream.xml")
+        # file = Gio.File.new_for_path(xml_path)
+        source = Xmlb.BuilderSource()
+        try:
+            ret = source.load_file(xml_file, Xmlb.BuilderSourceFlags.NONE, None)
+            builder = Xmlb.Builder()
+            builder.import_source(source)
+            self.xmlb_silo = builder.compile(Xmlb.BuilderCompileFlags.NONE, None)
+        except GLib.Error as e:
+            warn("Could not mmap appstream xml file for remote '%s': %s" % (self.remote.get_name(), e.message))
+            return
+
+    def update_verified(self):
+        if self.xmlb_silo is None:
+            self._load_xmlb_silo()
+        i = 0
+        k = 0
+        for comp_id in self.app_dict.keys():
+            k+=1
+            if self._get_verified(comp_id):
+                self.app_dict[comp_id].add_tag("flathub", "verified")
+                i += 1
+
+    def _get_verified(self, comp_id):
+        verified = False
+        try:
+            verified = self.xmlb_silo.query_first(
+                f"components/component/id[text()='{comp_id}'] \
+                  /../custom/value[(@key='flathub::verification::verified') and (text()='true')]\
+                  /../.."
+            )
+        except GLib.Error:
+            pass
+
+        return verified
 
 def make_pkg_hash(ref):
     if not isinstance(ref, Flatpak.Ref):
@@ -95,15 +201,16 @@ def _get_remote_name_by_url(fp_sys, url):
 
     for remote in remotes:
         remote_url = remote.get_url()
-        if remote_url.endswith('/'): #flatpakrefs are often missing the trailing forward slash in the url
-            remote_url = remote_url[:-1]
 
-        if remote_url == url:
+        if remote_url is None:
+            break
+
+        if remote_url.rstrip("/") == url.rstrip("/"):
             name = remote.get_name()
 
     return name
 
-def _process_remote(cache, fp_sys, remote, arch):
+def _process_remote(cache, rpool, fp_sys, remote, arch):
     remote_name = remote.get_name()
 
     if remote.get_disabled():
@@ -143,11 +250,11 @@ def _process_remote(cache, fp_sys, remote, arch):
             if ref.get_eol() is not None:
                 continue
 
-            _add_package_to_cache(cache, ref, remote_url, False)
+            _add_package_to_cache(cache, rpool, ref, remote_url, False)
     except GLib.Error as e:
         warn("Process remote:", e.message)
 
-def _add_package_to_cache(cache, ref, remote_url, installed):
+def _add_package_to_cache(cache, rpool, ref, remote_url, installed):
     pkg_hash = make_pkg_hash(ref)
 
     try:
@@ -162,6 +269,12 @@ def _add_package_to_cache(cache, ref, remote_url, installed):
             pkginfo.installed = installed
     except KeyError:
         pkginfo = FlatpakPkgInfo(pkg_hash, remote_name, ref, remote_url, installed)
+
+        if rpool is not None:
+            ascomp = rpool.lookup_component(pkginfo, resolve_addons=False)
+            if ascomp is not None:
+                pkginfo.add_cached_ascomp_data(ascomp)
+
         cache[pkg_hash] = pkginfo
 
     return pkginfo
@@ -176,16 +289,17 @@ def process_full_flatpak_installation(cache):
 
     try:
         for remote in fp_sys.list_remotes():
-            _process_remote(cache, fp_sys, remote, arch)
-
+            rpool = Pool(remote)
             remote_name = remote.get_name()
+
+            _process_remote(cache, rpool, fp_sys, remote, arch)
 
             try:
                 for ref in fp_sys.list_installed_refs(None):
                     # All remotes will see installed refs, but the installed refs will always
                     # report their correct origin, so only add installed refs when they match the remote.
                     if ref.get_origin() == remote_name:
-                        _add_package_to_cache(cache, ref, remote.get_url(), True)
+                        _add_package_to_cache(cache, rpool, ref, remote.get_url(), True)
             except GLib.Error as e:
                 warn("adding packages:", e.message)
 
@@ -199,47 +313,36 @@ def process_full_flatpak_installation(cache):
 
     return cache, flatpak_remote_infos
 
-def _load_appstream_pool(remote):
-    pool = AppStreamGlib.Store()
-
-    try:
-        path = remote.get_appstream_dir().get_path()
-
-        with open(os.path.join(path, "appstream.xml")) as f:
-            pool.from_xml(f.read(), path)
-    except Exception as e:
-        warn("Could not load appstream info for remote '%s': %s" % (remote, str(e)))
-        return
-
-    _as_pools[remote.get_name()] = pool
-
 def initialize_appstream(cb=None):
     thread = threading.Thread(target=_initialize_appstream_thread, args=(cb,))
     thread.start()
 
 def _initialize_appstream_thread(cb=None):
+    global pools
     fp_sys = get_fp_sys()
+    pools = {}
 
-    global _as_pools
-    global _as_pool_lock
+    try:
+        for remote in fp_sys.list_remotes():
+            if remote.get_noenumerate():
+                continue
 
-    with _as_pool_lock:
-        _as_pools = {}
-
+            pool = Pool(remote)
+            pools[remote.get_name()] = pool
+    except (GLib.Error, Exception) as e:
         try:
-            for remote in fp_sys.list_remotes():
-                if remote.get_noenumerate():
-                    continue
-                _load_appstream_pool(remote)
-        except (GLib.Error, Exception) as e:
-            try:
-                msg = e.message
-            except:
-                msg = str(e)
-            warn("Installer: Could not initialize appstream components for flatpaks: %s" % msg)
+            msg = e.message
+        except:
+            msg = str(e)
+        warn("Installer: Could not initialize appstream components for flatpaks: %s" % msg)
 
-    if (cb):
+    if cb is not None:
         GLib.idle_add(cb)
+
+    # Fill out missing info using xml directly
+    debug("Adding any missing metadata from pools")
+    for pool in pools.values():
+        pool.update_verified()
 
 def get_remote_or_installed_ref(ref, remote_name):
     fp_sys = get_fp_sys()
@@ -273,10 +376,10 @@ def get_remote_or_installed_ref(ref, remote_name):
     return None
 
 def create_pkginfo_from_as_component(comp, remote_name, remote_url):
-    name = comp.get_pkgname_default()
+    name = comp.get_pkgname()
     branch = comp.get_branch()
 
-    bundle = comp.get_bundle_default()
+    bundle = comp.get_bundle(AppStream.BundleKind.FLATPAK)
 
     shallow_ref = Flatpak.Ref.parse(bundle.get_id())
 
@@ -290,36 +393,10 @@ def create_pkginfo_from_as_component(comp, remote_name, remote_url):
 
     return pkginfo
 
-def search_for_pkginfo_as_component(pkginfo):
-    asapps = _search_as_pool_by_name(pkginfo.name, pkginfo.remote)
-
-    if asapps is None:
-        return None
-
-    for app in asapps:
-        bundle = app.get_bundle_default()
-        if pkginfo.refid == bundle.get_id():
-            return app
-
-    return None
-
-def _search_as_pool_by_name(name, remote):
-    comps = []
-
-    with _as_pool_lock:
-        try:
-            pool = _as_pools[remote]
-        except Exception as e:
-            return None
-
-        comps = pool.get_apps_by_id(name)
-
-        if comps == []:
-            comps = pool.get_apps_by_id(name + ".desktop")
-
-    if len(comps) > 0:
-        return comps
-    else:
+def search_for_pkginfo_as_component(pkginfo, resolve_addons):
+    try:
+        return pools[pkginfo.remote].lookup_component(pkginfo, resolve_addons)
+    except KeyError:
         return None
 
 def _get_system_theme_matches():
@@ -478,7 +555,7 @@ class FlatpakTransaction():
             # Always install the corresponding theme if we didn't already
             # have it.
             if self.task.type != "remove":
-                if self.task.asapp is not None and self.task.asapp.get_kind() != AppStreamGlib.AppKind.ADDON:
+                if self.task.asapp is not None and self.task.asapp.get_kind() != AppStream.ComponentKind.ADDON:
                     for theme_ref in _get_system_theme_matches():
                         try:
                             self.transaction.add_install(theme_ref.get_remote_name(),
@@ -871,7 +948,12 @@ def generate_uncached_pkginfos(cache):
                 # All remotes will see installed refs, but the installed refs will always
                 # report their correct origin, so only add installed refs when they match the remote.
                 if ref.get_origin() == remote_name:
-                    _add_package_to_cache(cache, ref, remote.get_url(), True)
+                    global pools
+                    try:
+                        pool = pools[remote_name]
+                    except:
+                        pool = None
+                    _add_package_to_cache(cache, pool, ref, remote.get_url(), True)
 
     except GLib.Error as e:
         warn("Installer: flatpak - could not check for uncached pkginfos", e.message)
@@ -980,29 +1062,25 @@ def _pkginfo_from_file_thread(cache, file, callback):
                         if e.code != Gio.DBusError.ACCESS_DENIED: # user cancelling auth prompt for adding a remote
                             warn("Installer: could not add new remote to system: %s" % e.message)
                             dialogs.show_flatpak_error(e.message)
+                        else:
+                            warn("Installer: %s" % e.message)
         except GLib.Error as e:
             warn("Installer: flatpak - could not parse flatpakref file: %s" % e.message)
             dialogs.show_flatpak_error(e.message)
 
         if ref:
             try:
+                global pools
                 remote = fp_sys.get_remote_by_name(remote_name, None)
 
-                # We only process if it's not a new remote, otherwise our appstream data
-                # will be out of sync with our package cache until we refresh the cache. This
-                # can affect versioning especially.
-                if new_remote:
-                    _process_remote(cache, fp_sys, remote, Flatpak.get_default_arch())
+                try:
+                    rpool = pools[remote.get_name()]
+                except KeyError:
+                    rpool = Pool(remote)
+                    _process_remote(cache, rpool, fp_sys, remote, Flatpak.get_default_arch())
 
                 # Add the ref to the cache, so we can work with it like any other in mintinstall
-                pkginfo = _add_package_to_cache(cache, ref, remote.get_url(), False)
-
-                # Fetch the appstream info for the ref
-                global _as_pools
-
-                with _as_pool_lock:
-                    if remote_name not in _as_pools.keys():
-                        _load_appstream_pool(_as_pools, remote)
+                pkginfo = _add_package_to_cache(cache, rpool, ref, remote.get_url(), False)
 
                 # Some flatpakref files will have a pointer to a runtime .flatpakrepo file
                 # We need to process and possibly add that remote as well.
