@@ -18,6 +18,31 @@ def capitalize(string):
         return (string)
 
 class PkgInfo:
+    __slots__ = (
+        "name",
+        "pkg_hash",
+        "refid",
+        "remote",
+        "kind",
+        "arch",
+        "branch",
+        "commit",
+        "remote_url"
+        "display_name",
+        "summary",
+        "description",
+        "version",
+        "icon",
+        "screenshots",
+        "homepage_url",
+        "help_url",
+        "categories",
+        "cached_display_name",
+        "cached_summary",
+        "cached_icon",
+        "installed"
+    )
+
     def __init__(self, pkg_hash=None):
         # Saved stuff
         self.pkg_hash = None
@@ -26,13 +51,17 @@ class PkgInfo:
 
         self.name = None
         # some flatpak-specific things
-        self.refid=""
+        self.refid = ""
         self.remote = ""
         self.kind = 0
         self.arch = ""
         self.branch = ""
         self.commit = ""
         self.remote_url = ""
+        # We need these at minimum for a nice startup state before appstream is loaded.
+        self.cached_display_name = ""
+        self.cached_summary = ""
+        self.cached_icon = ""
 
         # Display info fetched by methods always
         self.display_name = None
@@ -53,21 +82,39 @@ class AptPkgInfo(PkgInfo):
 
         if apt_pkg:
             self.name = apt_pkg.name
+            self.display_name = self.get_display_name(apt_pkg)
+            self.summary = self.get_summary(apt_pkg)
+            self.get_icon(apt_pkg, 48)
+            self.get_icon(apt_pkg, 64)
 
     @classmethod
     def from_json(cls, json_data:dict):
         inst = cls()
         inst.pkg_hash = json_data["pkg_hash"]
         inst.name = json_data["name"]
+        inst.display_name = json_data["display_name"]
+        inst.summary = json_data["summary"]
+
+        try:
+            cached = json_data["icon"]
+
+            while True:
+                size, icon = cached.popitem()
+                inst.icon[int(size)] = icon
+        except Exception as e:
+            pass
 
         return inst
 
     def to_json(self):
-        trimmed_dict = {}
-
-        for key in ("pkg_hash",
-                    "name"):
-            trimmed_dict[key] = self.__dict__[key]
+        trimmed_dict = {
+            key: getattr(self, key, None)
+                for key in ("pkg_hash",
+                            "name",
+                            "display_name",
+                            "summary",
+                            "icon")
+            }
 
         return trimmed_dict
 
@@ -127,7 +174,7 @@ class AptPkgInfo(PkgInfo):
 
         return self.description
 
-    def get_icon(self, pkginfo, apt_pkg=None, size=64):
+    def get_icon(self, apt_pkg=None, size=64):
         try:
             return self.icon[size]
         except:
@@ -135,7 +182,7 @@ class AptPkgInfo(PkgInfo):
 
         theme = Gtk.IconTheme.get_default()
 
-        for name in [pkginfo.name, pkginfo.name.split(":")[0], pkginfo.name.split("-")[0], pkginfo.name.split(".")[-1].lower()]:
+        for name in [self.name, self.name.split(":")[0], self.name.split("-")[0], self.name.split(".")[-1].lower()]:
             if theme.has_icon(name):
                 self.icon[size] = name
                 return self.icon[size]
@@ -143,12 +190,12 @@ class AptPkgInfo(PkgInfo):
         # Look in app-install-data and pixmaps
         for extension in ['svg', 'png', 'xpm']:
             for suffix in ['', '-icon']:
-                icon_path = "/usr/share/app-install/icons/%s%s.%s" % (pkginfo.name, suffix, extension)
+                icon_path = "/usr/share/app-install/icons/%s%s.%s" % (self.name, suffix, extension)
                 if os.path.exists(icon_path):
                     self.icon[size] = icon_path
                     return self.icon[size]
 
-                icon_path = "/usr/share/pixmaps/%s.%s" % (pkginfo.name, extension)
+                icon_path = "/usr/share/pixmaps/%s.%s" % (self.name, extension)
                 if os.path.exists(icon_path):
                     self.icon[size] = icon_path
                     return self.icon[size]
@@ -224,23 +271,49 @@ class FlatpakPkgInfo(PkgInfo):
         inst.commit = json_data["commit"]
         inst.remote_url = json_data["remote_url"]
 
+        try:
+            inst.cached_display_name = json_data["cached_display_name"]
+        except:
+            pass
+        try:
+            inst.cached_summary = json_data["cached_summary"]
+        except:
+            pass
+        try:
+            cached = json_data["cached_icon"]
+            size, icon = cached.popitem()
+            inst.cached_icon = { int(size): icon }
+        except Exception as e:
+            pass
         return inst
 
     def to_json(self):
-        trimmed_dict = {}
+        trimmed_dict = {
+            key: getattr(self, key, None)
+                for key in ("pkg_hash",
+                            "name",
+                            "refid",
+                            "remote",
+                            "kind",
+                            "arch",
+                            "branch",
+                            "commit",
+                            "remote_url")
+            }
 
-        for key in ("pkg_hash",
-                    "name",
-                    "refid",
-                    "remote",
-                    "kind",
-                    "arch",
-                    "branch",
-                    "commit",
-                    "remote_url"):
-            trimmed_dict[key] = self.__dict__[key]
+        if self.display_name is not None:
+            trimmed_dict["cached_display_name"] = self.display_name
+        if self.summary is not None:
+            trimmed_dict["cached_summary"] = self.summary
+        if len(self.icon.keys()) > 0:
+            trimmed_dict["cached_icon"] = self.icon
 
         return trimmed_dict
+
+    def add_cached_ascomp_data(self, ascomp):
+        self.cached_display_name = self.get_display_name(ascomp)
+        self.cached_summary = self.get_summary(ascomp)
+        self.cached_icon = self.get_icon(ascomp, 48)
 
     def get_display_name(self, as_component=None):
         # fastest
@@ -254,7 +327,10 @@ class FlatpakPkgInfo(PkgInfo):
                 self.display_name = capitalize(display_name)
 
         if self.display_name is None:
-            self.display_name = self.name
+            if self.cached_display_name is not None:
+                return self.cached_display_name
+            else:
+                return self.name
 
         return self.display_name
 
@@ -270,7 +346,10 @@ class FlatpakPkgInfo(PkgInfo):
                 self.summary = summary
 
         if self.summary is None:
-            self.summary = ""
+            if self.cached_summary is not None:
+                return self.cached_summary
+            else:
+                return ""
 
         return self.summary
 
@@ -289,11 +368,11 @@ class FlatpakPkgInfo(PkgInfo):
                 self.description = capitalize(description)
 
         if self.description is None:
-            self.description = ""
+            return ""
 
         return self.description
 
-    def get_icon(self, pkginfo, as_component=None, size=64):
+    def get_icon(self, as_component=None, size=64):
         try:
             return self.icon[size]
         except:
@@ -313,11 +392,11 @@ class FlatpakPkgInfo(PkgInfo):
                         remote_icon = icon
                         continue
 
-                        test_path = os.path.join(icon.get_prefix(), icon.get_name())
-                        if not os.path.exists(test_path):
                     if icon.get_kind() in (AppStream.IconKind.LOCAL,  \
                                            AppStream.IconKind.CACHED, \
                                            AppStream.IconKind.STOCK):
+                        test_path = icon.get_filename()
+                        if test_path is None or (not os.path.exists(test_path)):
                             continue
                         else:
                             local_exists_icon = icon
@@ -330,8 +409,8 @@ class FlatpakPkgInfo(PkgInfo):
                 if icon_to_use is not None:
                     kind = icon_to_use.get_kind()
 
-                        self.icon[size] = os.path.join(icon_to_use.get_prefix(), icon_to_use.get_name())
                     if kind != AppStream.IconKind.REMOTE:
+                        self.icon[size] = icon_to_use.get_filename()
                     else:
                         url = icon_to_use.get_url()
                         if not url.startswith("http") and self.remote == "flathub":
@@ -340,12 +419,18 @@ class FlatpakPkgInfo(PkgInfo):
                 else:
                     # All else fails, try using the package's name (which icon names should match for flatpaks).
                     # You may end up with a third-party icon, but it's better than none.
-                    self.icon[size] = pkginfo.name
+                    self.icon[size] = self.name
 
         try:
             return self.icon[size]
         except:
-            return None
+            if self.cached_icon is not None:
+                try:
+                    return self.cached_icon[size]
+                except:
+                    pass
+
+                return None
 
     def get_screenshots(self, as_component=None):
         if len(self.screenshots) > 0:
@@ -381,7 +466,7 @@ class FlatpakPkgInfo(PkgInfo):
                     self.version = version
 
         if self.version is None:
-            self.version = ""
+            return ""
 
         return self.version
 
@@ -394,6 +479,9 @@ class FlatpakPkgInfo(PkgInfo):
 
             if url is not None:
                 self.homepage_url = url
+
+        if self.homepage_url is None:
+            return ""
 
         return self.homepage_url
 
@@ -408,7 +496,7 @@ class FlatpakPkgInfo(PkgInfo):
                 self.help_url = url
 
         if self.help_url is None:
-            self.help_url = ""
+            return ""
 
         return self.help_url
 

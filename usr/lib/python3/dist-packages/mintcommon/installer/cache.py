@@ -296,14 +296,12 @@ class PkgCache(object):
         self._new_cache_common()
 
     def find_pkginfo(self, string, pkg_type=None, remote=None):
-        if pkg_type in (None, "a"):
-            pkginfo = _apt.find_pkginfo(self, string)
-
-            if pkginfo is not None:
-                return pkginfo
-
-        if self.have_flatpak:
-            if pkg_type in (None, "f"):
+        if pkg_type == "a" and not string.startswith("apt:"):
+            string = "apt:" + string
+        try:
+            return self[string]
+        except KeyError:
+            if self.have_flatpak and pkg_type == "f":
                 pkginfo = _flatpak.find_pkginfo(self, string, remote)
                 if pkginfo is not None:
                     return pkginfo

@@ -605,8 +605,10 @@ class Installer(GObject.Object):
         """
         Returns the name of the package formatted for displaying
         """
-        comp = self.get_appstream_app_for_pkginfo(pkginfo)
+        if pkginfo.pkg_hash.startswith("a"):
+            return pkginfo.get_display_name()
 
+        comp = self.get_appstream_app_for_pkginfo(pkginfo)
         return pkginfo.get_display_name(comp)
 
     def get_summary(self, pkginfo, for_search=False):
@@ -614,14 +616,10 @@ class Installer(GObject.Object):
         Returns the summary of the package.  If for_search is True,
         this is the raw, unformatted string in the case of apt.
         """
-        if for_search and pkginfo.pkg_hash.startswith("a"):
-            try:
-                return _apt._apt_cache[pkginfo.name].candidate.summary
-            except Exception:
-                pass
+        if pkginfo.pkg_hash.startswith("a"):
+            return pkginfo.get_summary()
 
         comp = self.get_appstream_app_for_pkginfo(pkginfo)
-
         return pkginfo.get_summary(comp)
 
     def get_description(self, pkginfo, for_search=False):
@@ -636,16 +634,17 @@ class Installer(GObject.Object):
                 pass
 
         comp = self.get_appstream_app_for_pkginfo(pkginfo)
-
         return pkginfo.get_description(comp)
 
     def get_icon(self, pkginfo, size):
         """
         Returns the icon name (or path) to display for the package
         """
-        comp = self.get_appstream_app_for_pkginfo(pkginfo)
+        if pkginfo.pkg_hash.startswith("a"):
+            return pkginfo.get_icon()
 
-        return pkginfo.get_icon(pkginfo, comp, size)
+        comp = self.get_appstream_app_for_pkginfo(pkginfo)
+        return pkginfo.get_icon(comp, size)
 
     def get_screenshots(self, pkginfo):
         """

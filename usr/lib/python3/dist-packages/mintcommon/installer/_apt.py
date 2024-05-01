@@ -148,14 +148,6 @@ def search_for_pkginfo_apt_pkg(pkginfo):
     except:
         return None
 
-def find_pkginfo(cache, string):
-    try:
-        pkginfo = cache[add_prefix(string)]
-    except:
-        pkginfo = None
-
-    return pkginfo
-
 def pkginfo_is_installed(pkginfo):
     global _apt_cache_lock
     apt_cache = get_apt_cache()
