@@ -468,6 +468,27 @@ def _get_related_refs_for_removal(parent_pkginfo):
                                                                  None)
     return related_refs
 
+def _get_addon_refs_for_pkginfo(parent_pkginfo):
+    global pools
+
+    addon_refs = []
+
+    try:
+        aspool = pools[parent_pkginfo.remote]
+        ascomp = aspool.lookup_component(parent_pkginfo, resolve_addons=False)
+        addons = ascomp.get_addons()
+        print(addons)
+
+        for addon in addons:
+            info = create_pkginfo_from_as_component(addon, parent_pkginfo.remote, parent_pkginfo.remote_url)
+            if info:
+                addon_refs.append(info.refid)
+    except Exception as e:
+        print(e)
+        addon_refs = None
+
+    return addon_refs
+
 def select_packages(task):
     task.transaction = FlatpakTransaction(task)
 
@@ -520,6 +541,13 @@ class FlatpakTransaction():
                 if not self.task.is_addon_task:
                     for related_ref in _get_related_refs_for_removal(self.task.pkginfo):
                         self.transaction.add_uninstall(related_ref.format_ref())
+                    for addon_formatted_ref in _get_addon_refs_for_pkginfo(self.task.pkginfo):
+                        try:
+                            self.transaction.add_uninstall(addon_formatted_ref)
+                        except GLib.Error as e:
+                            if e.code != Flatpak.Error.NOT_INSTALLED:
+                                print("Could not add uninstall for addon '%s': %s" % (addon_formatted_ref, e.message))
+                            continue
             else:
                 try:
                     all_updates = get_fp_sys().list_installed_refs_for_update(self.task.cancellable)
