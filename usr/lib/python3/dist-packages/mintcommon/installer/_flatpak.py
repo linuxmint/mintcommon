@@ -23,7 +23,7 @@ except:
 from .pkgInfo import FlatpakPkgInfo
 from . import dialogs
 from .dialogs import ChangesConfirmDialog, FlatpakProgressWindow
-from .misc import debug, warn
+from .misc import debug, warn, print_timing
 
 class FlatpakRemoteInfo():
     def __init__(self, remote=None):
@@ -158,6 +158,7 @@ class Pool():
             warn("Could not mmap appstream xml file for remote '%s': %s" % (self.remote.get_name(), e.message))
             return
 
+    @print_timing
     def update_verified(self):
         if self.xmlb_silo is None:
             self._load_xmlb_silo()
@@ -172,11 +173,8 @@ class Pool():
     def _get_verified(self, comp_id):
         verified = False
         try:
-            verified = self.xmlb_silo.query_first(
-                f"components/component/id[text()='{comp_id}'] \
-                  /../custom/value[(@key='flathub::verification::verified') and (text()='true')]\
-                  /../.."
-            )
+            comp = self.xmlb_silo.query_first(f"components/component/id[text()='{comp_id}'] /..")
+            verified = comp.query("custom/value[(@key='flathub::verification::verified') and (text()='true')]", 1)
         except GLib.Error:
             pass
 
