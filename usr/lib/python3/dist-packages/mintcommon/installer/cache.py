@@ -260,6 +260,7 @@ class PkgCache(object):
             if self.cache_content == "f":
                 for key in [key for key in self._items.keys() if key.startswith("a")]:
                     cache[key] = self._items[key]
+                sections = self.sections
             elif self.cache_content == "a":
                 for key in [key for key in self._items.keys() if key.startswith("f")]:
                     cache[key] = self._items[key]
