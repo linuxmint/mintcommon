@@ -1,0 +1,5 @@
+debian/mint-common
+debian/*.substvars
+debian/debhelper-build-stamp
+debian/.debhelper
+debian/files
