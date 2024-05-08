@@ -162,12 +162,16 @@ class Pool():
     def update_verified(self):
         if self.xmlb_silo is None:
             self._load_xmlb_silo()
+
+        if self.xmlb_silo is None:
+            return
+
         i = 0
         k = 0
         for comp_id in self.app_dict.keys():
             k+=1
             if self._get_verified(comp_id):
-                self.app_dict[comp_id].add_tag("flathub", "verified")
+                self.app_dict[comp_id].add_tag(self.remote.get_name(), "verified")
                 i += 1
 
     def _get_verified(self, comp_id):
@@ -219,9 +223,8 @@ def _process_remote(cache, rpool, fp_sys, remote, arch):
 
     try:
         success = fp_sys.update_appstream_sync(remote_name, arch, None)
-    except GLib.Error:
-        # Not fatal..
-        pass
+    except GLib.Error as e:
+        warn("Could not update appstream for %s: %s" % (remote_name, e.message))
 
     # get_noenumerate indicates whether a remote should be used to list applications.
     # Instead, they're intended for single downloads (via .flatpakref files)
@@ -272,6 +275,9 @@ def _add_package_to_cache(cache, rpool, ref, remote_url, installed):
             ascomp = rpool.lookup_component(pkginfo, resolve_addons=False)
             if ascomp is not None:
                 pkginfo.add_cached_ascomp_data(ascomp)
+                pkginfo.verified = ascomp.has_tag(remote_name, "verified")
+            else:
+                pkginfo.verified = False
 
         cache[pkg_hash] = pkginfo
 
@@ -288,6 +294,7 @@ def process_full_flatpak_installation(cache):
     try:
         for remote in fp_sys.list_remotes():
             rpool = Pool(remote)
+            rpool.update_verified()
             remote_name = remote.get_name()
 
             _process_remote(cache, rpool, fp_sys, remote, arch)

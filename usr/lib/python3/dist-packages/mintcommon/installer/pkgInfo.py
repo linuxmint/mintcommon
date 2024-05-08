@@ -27,7 +27,7 @@ class PkgInfo:
         "arch",
         "branch",
         "commit",
-        "remote_url"
+        "remote_url",
         "display_name",
         "summary",
         "description",
@@ -40,7 +40,8 @@ class PkgInfo:
         "cached_display_name",
         "cached_summary",
         "cached_icon",
-        "installed"
+        "installed",
+        "verified"
     )
 
     def __init__(self, pkg_hash=None):
@@ -79,6 +80,9 @@ class PkgInfo:
 class AptPkgInfo(PkgInfo):
     def __init__(self, pkg_hash=None, apt_pkg=None):
         super(AptPkgInfo, self).__init__(pkg_hash)
+
+        # This is cheap.. but keeps from having an additional fp/apt check every time we check it.
+        self.verified = True
 
         if apt_pkg:
             self.name = apt_pkg.name
@@ -240,7 +244,7 @@ class AptPkgInfo(PkgInfo):
         return ""
 
 class FlatpakPkgInfo(PkgInfo):
-    def __init__(self, pkg_hash=None, remote=None, ref=None, remote_url=None, installed=False):
+    def __init__(self, pkg_hash=None, remote=None, ref=None, remote_url=None, installed=False, verified=False):
         super(FlatpakPkgInfo, self).__init__(pkg_hash)
 
         if not pkg_hash:
@@ -270,6 +274,7 @@ class FlatpakPkgInfo(PkgInfo):
         inst.branch = json_data["branch"]
         inst.commit = json_data["commit"]
         inst.remote_url = json_data["remote_url"]
+        inst.verified = json_data["verified"]
 
         try:
             inst.cached_display_name = json_data["cached_display_name"]
@@ -298,7 +303,8 @@ class FlatpakPkgInfo(PkgInfo):
                             "arch",
                             "branch",
                             "commit",
-                            "remote_url")
+                            "remote_url",
+                            "verified")
             }
 
         if self.display_name is not None:
