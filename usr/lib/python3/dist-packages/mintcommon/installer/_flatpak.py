@@ -166,18 +166,18 @@ class Pool():
         if self.xmlb_silo is None:
             return
 
-        i = 0
-        k = 0
         for comp_id in self.app_dict.keys():
-            k+=1
-            if self._get_verified(comp_id):
-                self.app_dict[comp_id].add_tag(self.remote.get_name(), "verified")
-                i += 1
+            try:
+                comp = self.xmlb_silo.query_first(f"components/component/id[text()='{comp_id}'] /..")
+            except GLib.Error:
+                continue
 
-    def _get_verified(self, comp_id):
+            if self._get_verified(comp):
+                self.app_dict[comp_id].add_tag(self.remote.get_name(), "verified")
+
+    def _get_verified(self, comp):
         verified = False
         try:
-            comp = self.xmlb_silo.query_first(f"components/component/id[text()='{comp_id}'] /..")
             verified = comp.query("custom/value[(@key='flathub::verification::verified') and (text()='true')]", 1)
         except GLib.Error:
             pass
