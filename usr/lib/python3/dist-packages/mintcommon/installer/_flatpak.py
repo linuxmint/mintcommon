@@ -488,8 +488,7 @@ def _get_addon_refs_for_pkginfo(parent_pkginfo):
             if info:
                 addon_refs.append(info.refid)
     except Exception as e:
-        print(e)
-        addon_refs = None
+        debug(str(e))
 
     return addon_refs
 
