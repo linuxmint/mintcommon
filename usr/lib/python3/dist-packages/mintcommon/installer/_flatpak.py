@@ -329,9 +329,6 @@ def _initialize_appstream_thread(cb=None):
 
     try:
         for remote in fp_sys.list_remotes():
-            if remote.get_noenumerate():
-                continue
-
             pool = Pool(remote)
             pools[remote.get_name()] = pool
     except (GLib.Error, Exception) as e:
