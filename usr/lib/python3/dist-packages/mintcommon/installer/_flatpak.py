@@ -506,12 +506,14 @@ def _get_addon_refs_for_pkginfo(parent_pkginfo):
     try:
         aspool = pools[parent_pkginfo.remote]
         ascomp = aspool.lookup_component(parent_pkginfo, resolve_addons=True)
-        addons = ascomp.get_addons()
 
-        for addon in addons:
-            info = create_pkginfo_from_as_component(addon, parent_pkginfo.remote, parent_pkginfo.remote_url)
-            if info:
-                addon_refs.append(info.refid)
+        if ascomp is not None:
+            addons = ascomp.get_addons()
+
+            for addon in addons:
+                info = create_pkginfo_from_as_component(addon, parent_pkginfo.remote, parent_pkginfo.remote_url)
+                if info:
+                    addon_refs.append(info.refid)
     except Exception as e:
         debug(str(e))
 
