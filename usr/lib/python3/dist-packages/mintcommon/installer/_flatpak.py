@@ -816,22 +816,20 @@ class FlatpakTransaction():
         warn("%s is end-of-life (EOL) (%s)" % (ref, reason))
 
     def _ref_eoled_with_rebase(self, transaction, remote, ref, reason, rebased_to_ref, prev_ids):
-        warn("%s is end-of-life (EOL) (%s)" % (ref, reason))
-
-        try:
-            transaction.add_uninstall(ref)
-        except:
-            pass
+        warn("%s is end-of-life (EOL): (%s)" % (ref, reason))
 
         if rebased_to_ref is not None:
             try:
                 warn("Replacing with %s" % rebased_to_ref)
                 transaction.add_rebase(remote, rebased_to_ref, None, prev_ids)
+                transaction.add_uninstall(ref)
+                return True
             except GLib.Error as e:
                 debug("Problem adding replacement ref: %s" % e.message)
                 return False
 
-        return True
+        warn("No updated ref to use, using the EOL'd one.")
+        return False
 
     def _add_to_list(self, ref_list, ref):
         ref_str = ref.format_ref()
