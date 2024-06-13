@@ -41,7 +41,8 @@ class PkgInfo:
         "cached_summary",
         "cached_icon",
         "installed",
-        "verified"
+        "verified",
+        "developer"
     )
 
     def __init__(self, pkg_hash=None):
@@ -244,7 +245,7 @@ class AptPkgInfo(PkgInfo):
         return ""
 
 class FlatpakPkgInfo(PkgInfo):
-    def __init__(self, pkg_hash=None, remote=None, ref=None, remote_url=None, installed=False, verified=False):
+    def __init__(self, pkg_hash=None, remote=None, ref=None, remote_url=None, installed=False):
         super(FlatpakPkgInfo, self).__init__(pkg_hash)
 
         if not pkg_hash:
@@ -275,6 +276,7 @@ class FlatpakPkgInfo(PkgInfo):
         inst.commit = json_data["commit"]
         inst.remote_url = json_data["remote_url"]
         inst.verified = json_data["verified"]
+        inst.developer = json_data["developer"]
 
         try:
             inst.cached_display_name = json_data["cached_display_name"]
@@ -304,7 +306,8 @@ class FlatpakPkgInfo(PkgInfo):
                             "branch",
                             "commit",
                             "remote_url",
-                            "verified")
+                            "verified",
+                            "developer")
             }
 
         if self.display_name is not None:
@@ -320,6 +323,7 @@ class FlatpakPkgInfo(PkgInfo):
         self.cached_display_name = self.get_display_name(ascomp)
         self.cached_summary = self.get_summary(ascomp)
         self.cached_icon = self.get_icon(ascomp, 48)
+        self.developer = ascomp.get_project_group()
 
     def get_display_name(self, as_component=None):
         # fastest

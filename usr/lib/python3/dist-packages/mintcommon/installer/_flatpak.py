@@ -159,7 +159,7 @@ class Pool():
             return
 
     @print_timing
-    def update_verified(self):
+    def update_xmlb_info(self):
         if self.xmlb_silo is None:
             self._load_xmlb_silo()
 
@@ -175,6 +175,13 @@ class Pool():
             if self._get_verified(comp):
                 self.app_dict[comp_id].add_tag(self.remote.get_name(), "verified")
 
+            dev_name = self._get_developer(comp)
+            if dev_name is not None:
+                # hack: set_project_group() is common in libappstream, so use for temporary storage
+                # to avoid another try/except for set_developer[_name]. It's going to be part of the
+                # cache anyhow.
+                self.app_dict[comp_id].set_project_group(dev_name)
+
     def _get_verified(self, comp):
         verified = False
         try:
@@ -183,6 +190,30 @@ class Pool():
             pass
 
         return verified
+
+    def _get_developer(self, comp):
+        # "developer" is recent, replacing "developer_name". Currently both are allowed, though older
+        # libappstream doesn't support it, causing us to only see the developer name in mintinstall if they're
+        # still using "developer_name". If all else fails, project_group may have something.
+        try:
+            developer = comp.query("developer/name", 1)[0]
+            return developer.get_text() if developer else None
+        except GLib.Error:
+            pass
+
+        try:
+            developer = comp.query("developer_name", 1)[0]
+            return developer.get_text() if developer else None
+        except GLib.Error:
+            pass
+
+        try:
+            developer = comp.query("project_group", 1)[0]
+            return developer.get_text() if developer else None
+        except GLib.Error:
+            pass
+
+        return None
 
 def make_pkg_hash(ref):
     if not isinstance(ref, Flatpak.Ref):
@@ -276,8 +307,10 @@ def _add_package_to_cache(cache, rpool, ref, remote_url, installed):
             if ascomp is not None:
                 pkginfo.add_cached_ascomp_data(ascomp)
                 pkginfo.verified = ascomp.has_tag(remote_name, "verified")
+                pkginfo.developer = ascomp.get_project_group()
             else:
                 pkginfo.verified = False
+                pkginfo.developer = None
 
         cache[pkg_hash] = pkginfo
 
@@ -294,7 +327,7 @@ def process_full_flatpak_installation(cache):
     try:
         for remote in fp_sys.list_remotes():
             rpool = Pool(remote)
-            rpool.update_verified()
+            rpool.update_xmlb_info()
             remote_name = remote.get_name()
 
             _process_remote(cache, rpool, fp_sys, remote, arch)
@@ -340,11 +373,6 @@ def _initialize_appstream_thread(cb=None):
 
     if cb is not None:
         GLib.idle_add(cb)
-
-    # Fill out missing info using xml directly
-    debug("Adding any missing metadata from pools")
-    for pool in pools.values():
-        pool.update_verified()
 
 def get_remote_or_installed_ref(ref, remote_name):
     fp_sys = get_fp_sys()
