@@ -51,7 +51,7 @@ class MintRemoveWindow:
         for line in rdependenciesLines:
                 rdependencies.append(line.split()[1])
 
-        dontRemoves = ["cinnamon", "mint-meta-cinnamon", "mint-meta-core"]
+        dontRemoves = ["cinnamon", "mint-meta-cinnamon", "mint-meta-core", "mint-meta-mate", "mint-meta-xfce"]
         if any(packageName in dontRemoves for packageName in rdependencies):
             self.no_remove_dialog(package, rdependencies)
         else:
