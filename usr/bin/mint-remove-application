@@ -88,7 +88,7 @@ class MintRemoveWindow:
         column1.add_attribute(renderer, "text", 0)
         treeview.append_column(column1)
 
-        packages_to_remove = [package] + self.get_autoremovable_dependencies(package)
+        packages_to_remove = rdependencies + self.get_autoremovable_dependencies(package)
         model = Gtk.ListStore(str)
         for item in packages_to_remove:
             model.append([item])
