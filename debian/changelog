@@ -1,3 +1,26 @@
+mint-common (2.3.2) wilma; urgency=medium
+
+  [ Michael Webster ]
+  * polkit: Remove restrictions for remote/non-active sessions.
+  * flatpaks: Use AppStream and libxmlb instead of AppStreamGlib.
+  * Remove any addons when uninstalling a flatpak.
+  * cache.py: Add a schema version to the package cache.
+  * Installer: Performance-oriented improvements.
+  * cache.py: Save existing apt section info when updating flatpaks.
+  * debian/control: Update dependencies.
+  * Add .gitignore
+  * Simplify Xpath query for app verification update.
+  * _flatpak.py: Set resolve_addons when checking for addons to remove during flatpak uninstall.
+  * Cache the verified state of Flatpaks.
+  * _flatpak.py: Remove useless code, small cleanup.
+  * _flatpak.py: Fix wrong return type checking for addons.
+  * flatpak: Don't skip loading appstream data even if a repo is marked no-enumerate.
+  * flatpaks: Query xmlb data for a developer name and cache it.
+  * flatpak: Don't remove an EOL'd ref from a transaction unless a replacement is supplied.
+  * flatpaks: Prevent useless warning in _get_addon_refs_for_pkginfo().
+
+ -- Clement Lefebvre <root@linuxmint.com>  Sun, 16 Jun 2024 11:07:38 +0100
+
 mint-common (2.3.1) virginia; urgency=medium
 
   [ Michael Webster ]
