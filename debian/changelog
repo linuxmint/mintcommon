@@ -1,3 +1,10 @@
+mint-common (2.3.3) wilma; urgency=medium
+
+  [ Michael Webster ]
+  * pkginfo: Initialize cached strings to None
+
+ -- Clement Lefebvre <root@linuxmint.com>  Tue, 18 Jun 2024 18:50:19 +0100
+
 mint-common (2.3.2) wilma; urgency=medium
 
   [ Michael Webster ]
