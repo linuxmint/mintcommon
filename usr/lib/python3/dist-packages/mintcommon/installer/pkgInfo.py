@@ -61,9 +61,9 @@ class PkgInfo:
         self.commit = ""
         self.remote_url = ""
         # We need these at minimum for a nice startup state before appstream is loaded.
-        self.cached_display_name = ""
-        self.cached_summary = ""
-        self.cached_icon = ""
+        self.cached_display_name = None
+        self.cached_summary = None
+        self.cached_icon = None
 
         # Display info fetched by methods always
         self.display_name = None
