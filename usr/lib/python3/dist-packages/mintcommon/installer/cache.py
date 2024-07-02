@@ -302,7 +302,7 @@ class PkgCache(object):
         try:
             return self[string]
         except KeyError:
-            if self.have_flatpak and pkg_type == "f":
+            if self.have_flatpak:
                 pkginfo = _flatpak.find_pkginfo(self, string, remote)
                 if pkginfo is not None:
                     return pkginfo
