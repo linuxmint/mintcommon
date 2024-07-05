@@ -302,6 +302,8 @@ class PkgCache(object):
         try:
             return self[string]
         except KeyError:
+            if string[0:4] == "apt:":
+                return None
             if self.have_flatpak:
                 pkginfo = _flatpak.find_pkginfo(self, string, remote)
                 if pkginfo is not None:
