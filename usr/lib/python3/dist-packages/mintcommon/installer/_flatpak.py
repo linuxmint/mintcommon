@@ -250,13 +250,6 @@ def _process_remote(cache, rpool, fp_sys, remote, arch):
         debug("Installer: flatpak - remote '%s' is disabled, skipping" % remote_name)
         return
 
-    debug("Installer: flatpak - updating appstream data for remote '%s'..." % remote_name)
-
-    try:
-        success = fp_sys.update_appstream_sync(remote_name, arch, None)
-    except GLib.Error as e:
-        warn("Could not update appstream for %s: %s" % (remote_name, e.message))
-
     # get_noenumerate indicates whether a remote should be used to list applications.
     # Instead, they're intended for single downloads (via .flatpakref files)
     if remote.get_noenumerate():
@@ -326,9 +319,16 @@ def process_full_flatpak_installation(cache):
 
     try:
         for remote in fp_sys.list_remotes():
+            remote_name = remote.get_name()
+
+            debug("Installer: flatpak - updating appstream data for remote '%s'..." % remote_name)
+            try:
+                success = fp_sys.update_appstream_sync(remote_name, arch, None)
+            except GLib.Error as e:
+                warn("Could not update appstream for %s: %s" % (remote_name, e.message))
+
             rpool = Pool(remote)
             rpool.update_xmlb_info()
-            remote_name = remote.get_name()
 
             _process_remote(cache, rpool, fp_sys, remote, arch)
 
