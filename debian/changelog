@@ -1,3 +1,11 @@
+mint-common (2.3.4) wilma; urgency=medium
+
+  [ Michael Webster ]
+  * Fix cache lookup for incomplete flatpak ref strings.
+  * flatpaks: When updating the cache, fetch an updated appstream file before creating a remote Pool.
+
+ -- Clement Lefebvre <root@linuxmint.com>  Fri, 05 Jul 2024 20:59:35 +0100
+
 mint-common (2.3.3) wilma; urgency=medium
 
   [ Michael Webster ]
