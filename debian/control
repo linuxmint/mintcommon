@@ -15,6 +15,7 @@ Depends: python3,
          gir1.2-xapp-1.0,
          gir1.2-appstream-1.0,
          gir1.2-xmlb-2.0,
+         html2text,
          mint-translations,
          libgtk3-perl
          ${misc:Depends},
