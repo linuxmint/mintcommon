@@ -166,6 +166,11 @@ class Pool():
         if self.xmlb_silo is None:
             return
 
+        locale = self.as_pool.get_locale()
+        locale_variants = [locale]
+        for v in GLib.get_locale_variants(locale):
+            locale_variants.append(AppStream.utils_posix_locale_to_bcp47(v))
+
         for comp_id in self.app_dict.keys():
             try:
                 comp = self.xmlb_silo.query_first(f"components/component/id[text()='{comp_id}'] /..")
@@ -175,7 +180,7 @@ class Pool():
             if self._get_verified(comp):
                 self.app_dict[comp_id].add_tag(self.remote.get_name(), "verified")
 
-            dev_name = self._get_developer(comp)
+            dev_name = self._get_developer(comp, locale_variants)
             if dev_name is not None:
                 # hack: set_project_group() is common in libappstream, so use for temporary storage
                 # to avoid another try/except for set_developer[_name]. It's going to be part of the
@@ -194,19 +199,50 @@ class Pool():
 
         return verified
 
-    def _get_developer(self, comp):
+    def do_query(self, node, query):
+        try:
+            return node.query(query, 1)
+        except:
+            return None
+
+    def _get_developer(self, comp, locale_variants):
         # "developer" is recent, replacing "developer_name". Currently both are allowed, though older
         # libappstream doesn't support it, causing us to only see the developer name in mintinstall if they're
         # still using "developer_name". If all else fails, project_group may have something.
+
         try:
-            developer = comp.query("developer/name", 1)[0]
-            return developer.get_text() if developer else None
-        except GLib.Error:
+            developer_node = comp.query("developer", 1)[0]
+
+            result = None
+            # locale_variants will be something like ["en_US", "en", "C"]
+            for variant in locale_variants:
+                # Look for the name with the matching locale
+                result = self.do_query(developer_node, f"name[@xml:lang='{variant}']")
+
+                if result is not None:
+                    break
+
+            if result is None:
+                # If no locales matched, there should be (??) a non-localized version as well, use that one.
+                result = self.do_query(developer_node, f"name[not(@xml:lang)]")
+
+            if result is not None:
+                return result[0].get_text()
+        except GLib.Error as e:
             pass
 
         try:
-            developer = comp.query("developer_name", 1)[0]
-            return developer.get_text() if developer else None
+            for variant in locale_variants:
+                result = self.do_query(comp, f"developer_name[@xml:lang='{variant}']")
+
+                if result is not None:
+                    break
+
+            if result is None:
+                result = self.do_query(comp, f"developer_name[not(@xml:lang)]")
+
+            if result is not None:
+                return result[0].get_text()
         except GLib.Error:
             pass
 
