@@ -186,8 +186,11 @@ class Pool():
         verified = False
         try:
             verified = comp.query("custom/value[(@key='flathub::verification::verified') and (text()='true')]", 1)
-        except GLib.Error:
-            pass
+        except:
+            try:
+                verified = comp.query("metadata/value[(@key='flathub::verification::verified') and (text()='true')]", 1)
+            except:
+                pass
 
         return verified
 
