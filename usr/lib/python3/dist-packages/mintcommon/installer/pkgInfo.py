@@ -1,4 +1,3 @@
-import html2text
 import sys
 if sys.version_info.major < 3:
     raise "python3 required"
@@ -373,7 +372,11 @@ class FlatpakPkgInfo(PkgInfo):
             description = as_component.get_description()
 
             if description is not None:
-                self.description = html2text.html2text(description)
+                try:
+                    self.description = AppStream.markup_convert(description, AppStream.MarkupKind.TEXT)
+                except GLib.Error as e:
+                    warn("Could not convert description to text: %s" % e.message)
+                    self.description = description
 
         if self.description is None:
             return ""
