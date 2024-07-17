@@ -218,7 +218,8 @@ class AptPkgInfo(PkgInfo):
             if apt_pkg.is_installed:
                 self.version = apt_pkg.installed.version
             else:
-                self.version = apt_pkg.candidate.version
+                if apt_pkg.candidate is not None:
+                    self.version = apt_pkg.candidate.version
 
         if self.version is None:
             self.version = ""
@@ -233,7 +234,8 @@ class AptPkgInfo(PkgInfo):
             if apt_pkg.is_installed:
                 self.homepage_url = apt_pkg.installed.homepage
             else:
-                self.homepage_url = apt_pkg.candidate.homepage
+                if apt_pkg.candidate is not None:
+                    self.homepage_url = apt_pkg.candidate.homepage
 
         if self.homepage_url is None:
             self.homepage_url = ""

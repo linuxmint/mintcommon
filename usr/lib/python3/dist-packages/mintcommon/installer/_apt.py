@@ -97,6 +97,8 @@ def process_full_apt_cache(cache):
             continue
         if name == "pepperflashplugin-nonfree": # formerly marked broken, it's now a dummy and has no dependents (and only exists in Mint 20).
             continue
+        if pkg.candidate is None:
+            continue
         if ":" in name and name.split(":")[0] in keys:
             continue
         try:
@@ -109,19 +111,18 @@ def process_full_apt_cache(cache):
 
         pkg_hash = make_pkg_hash(pkg)
 
-        if pkg.candidate:
-            section_string = pkg.candidate.section
+        section_string = pkg.candidate.section
 
-            if "/" in section_string:
-                section = section_string.split("/")[1]
-            else:
-                section = section_string
+        if "/" in section_string:
+            section = section_string.split("/")[1]
+        else:
+            section = section_string
 
-            try:
-                sections[section].append(pkg_hash)
-            except Exception:
-                sections[section] = []
-                sections[section].append(pkg_hash)
+        try:
+            sections[section].append(pkg_hash)
+        except Exception:
+            sections[section] = []
+            sections[section].append(pkg_hash)
 
         cache[pkg_hash] = AptPkgInfo(pkg_hash, pkg)
 
