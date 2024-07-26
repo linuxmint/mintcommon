@@ -1,3 +1,11 @@
+mint-common (2.3.8) wilma; urgency=medium
+
+  [ Michael Webster ]
+  * flatpaks: backport locale utility function from appstream 1.0+.
+  * pkginfo: Fall back to html2text if the appstream library doesn't contain AppStream.markup_convert().
+
+ -- Clement Lefebvre <root@linuxmint.com>  Fri, 26 Jul 2024 17:33:56 +0100
+
 mint-common (2.3.7) wilma; urgency=medium
 
   [ Michael Webster ]
