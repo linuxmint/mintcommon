@@ -25,6 +25,28 @@ from . import dialogs
 from .dialogs import ChangesConfirmDialog, FlatpakProgressWindow
 from .misc import debug, warn, print_timing
 
+# From appstream-1.0.2 (as-utils.c)
+def locale_to_bcp47(locale):
+    has_variant = False
+    if locale == None:
+        return None
+
+    ret = locale.replace("_", "-")
+    if "@" in ret:
+        ret, variant = ret.split("@")
+        if variant == "cyrillic":
+            ret += "-Cyrl"
+        elif variant == "devanagari":
+            ret += "-Deva"
+        elif variant == "latin":
+            ret += "-Latn"
+        elif variant == "shaw":
+            ret += "-Shaw"
+        elif variant != "euro":
+            ret += "-" + variant
+
+    return ret
+
 class FlatpakRemoteInfo():
     def __init__(self, remote=None):
         if remote:
@@ -169,7 +191,7 @@ class Pool():
         locale = self.as_pool.get_locale()
         locale_variants = [locale]
         for v in GLib.get_locale_variants(locale):
-            locale_variants.append(AppStream.utils_posix_locale_to_bcp47(v))
+            locale_variants.append(locale_to_bcp47(v))
 
         for comp_id in self.app_dict.keys():
             try:
