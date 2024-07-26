@@ -2,11 +2,14 @@ import sys
 if sys.version_info.major < 3:
     raise "python3 required"
 import os
+import html2text
 
 import gi
 gi.require_version("AppStream", "1.0")
 gi.require_version("Gtk", "3.0")
 from gi.repository import AppStream, Gtk
+
+from .misc import warn
 
 # this should hopefully be supplied by remote info someday.
 FLATHUB_MEDIA_BASE_URL = "https://dl.flathub.org/media/"
@@ -365,6 +368,16 @@ class FlatpakPkgInfo(PkgInfo):
 
         return self.summary
 
+    def as_markup_convert(self, markup):
+        try:
+            return AppStream.markup_convert(markup, AppStream.MarkupKind.TEXT)
+        except:
+            try:
+                return html2text.html2text(markup)
+            except Exception as e:
+                warn("Could not convert description to text: %s" % str(e))
+                return markup
+
     def get_description(self, as_component=None):
         # fastest
         if self.description:
@@ -374,11 +387,7 @@ class FlatpakPkgInfo(PkgInfo):
             description = as_component.get_description()
 
             if description is not None:
-                try:
-                    self.description = AppStream.markup_convert(description, AppStream.MarkupKind.TEXT)
-                except GLib.Error as e:
-                    warn("Could not convert description to text: %s" % e.message)
-                    self.description = description
+                self.description = self.as_markup_convert(description)
 
         if self.description is None:
             return ""
