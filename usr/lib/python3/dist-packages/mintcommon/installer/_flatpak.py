@@ -189,9 +189,9 @@ class Pool():
             return
 
         locale = self.as_pool.get_locale()
-        locale_variants = [locale]
+        locale_variants = {locale}
         for v in GLib.get_locale_variants(locale):
-            locale_variants.append(locale_to_bcp47(v))
+            locale_variants.add(locale_to_bcp47(v))
 
         for comp_id in self.app_dict.keys():
             try:
