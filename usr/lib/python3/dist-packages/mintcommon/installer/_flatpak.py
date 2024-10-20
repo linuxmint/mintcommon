@@ -9,10 +9,9 @@ import tempfile
 import os
 
 import gi
-gi.require_version('AppStream', '1.0')
 gi.require_version('Gtk', '3.0')
 gi.require_version('Xmlb', '2.0')
-from gi.repository import AppStream, GLib, GObject, Gtk, Gio, Gdk, Xmlb
+from gi.repository import GLib, GObject, Gtk, Gio, Gdk, Xmlb
 
 try:
     gi.require_version('Flatpak', '1.0')
@@ -24,28 +23,7 @@ from .pkgInfo import FlatpakPkgInfo
 from . import dialogs
 from .dialogs import ChangesConfirmDialog, FlatpakProgressWindow
 from .misc import debug, warn, print_timing
-
-# From appstream-1.0.2 (as-utils.c)
-def locale_to_bcp47(locale):
-    has_variant = False
-    if locale == None:
-        return None
-
-    ret = locale.replace("_", "-")
-    if "@" in ret:
-        ret, variant = ret.split("@")
-        if variant == "cyrillic":
-            ret += "-Cyrl"
-        elif variant == "devanagari":
-            ret += "-Deva"
-        elif variant == "latin":
-            ret += "-Latn"
-        elif variant == "shaw":
-            ret += "-Shaw"
-        elif variant != "euro":
-            ret += "-" + variant
-
-    return ret
+from . import appstream_pool
 
 class FlatpakRemoteInfo():
     def __init__(self, remote=None):
@@ -97,184 +75,6 @@ ALIASES = {
 }
 
 pools = {}
-
-class Pool():
-    def __init__(self, remote):
-        self.remote = remote
-
-        self.as_pool = None
-        self.app_dict = {}
-        self.xmlb_silo = None
-
-        self._load_pool()
-
-    def lookup_component(self, pkginfo, resolve_addons):
-        comp = None
-
-        if not resolve_addons:
-            try:
-                comp = self.app_dict[pkginfo.name]
-            except KeyError:
-                pass
-        else:
-            # RESOLVE_ADDONS adds a lot of time to normal lookups, so only
-            # use this when we actually want to see addons. Fortunately the
-            # flag can be added just for a single lookup, then removed.
-            self.as_pool.add_flags(AppStream.PoolFlags.RESOLVE_ADDONS)
-
-            # compatibility with libappstream < 1.0.0
-            try:
-                components = self.as_pool.get_components_by_id(pkginfo.name).as_array()
-            except AttributeError:
-                components = self.as_pool.get_components_by_id(pkginfo.name)
-
-            try:
-                comp = components[0]
-            except:
-                pass
-            self.as_pool.remove_flags(AppStream.PoolFlags.RESOLVE_ADDONS)
-
-        return comp
-
-    def _load_pool(self):
-        pool = AppStream.Pool()
-        remote_name = self.remote.get_name()
-
-        try:
-            pool.set_load_std_data_locations(False)
-            pool.set_flags(
-                AppStream.PoolFlags.LOAD_FLATPAK |
-                AppStream.PoolFlags.MONITOR
-            )
-            pool.load()
-            self.as_pool = pool
-
-            # compatibility with libappstream < 1.0.0
-            try:
-                comps = pool.get_components().as_array()
-            except AttributeError:
-                comps = pool.get_components()
-
-            for comp in comps:
-                comp_id = comp.get_id()
-
-                if comp_id.endswith(".desktop"):
-                    self.app_dict[comp_id] = comp
-                    comp_id = comp_id[0:-8]
-                self.app_dict[comp_id] = comp
-
-        except Exception as e:
-            warn("Could not load appstream info for remote '%s': %s" % (remote_name, str(e)))
-            return
-
-    def _load_xmlb_silo(self):
-        xml_file = self.remote.get_appstream_dir().get_child("appstream.xml")
-        # file = Gio.File.new_for_path(xml_path)
-        source = Xmlb.BuilderSource()
-        try:
-            ret = source.load_file(xml_file, Xmlb.BuilderSourceFlags.NONE, None)
-            builder = Xmlb.Builder()
-            builder.import_source(source)
-            self.xmlb_silo = builder.compile(Xmlb.BuilderCompileFlags.NONE, None)
-        except GLib.Error as e:
-            warn("Could not mmap appstream xml file for remote '%s': %s" % (self.remote.get_name(), e.message))
-            return
-
-    @print_timing
-    def update_xmlb_info(self):
-        if self.xmlb_silo is None:
-            self._load_xmlb_silo()
-
-        if self.xmlb_silo is None:
-            return
-
-        locale = self.as_pool.get_locale()
-        locale_variants = {locale}
-        for v in GLib.get_locale_variants(locale):
-            locale_variants.add(locale_to_bcp47(v))
-
-        for comp_id in self.app_dict.keys():
-            try:
-                comp = self.xmlb_silo.query_first(f"components/component/id[text()='{comp_id}'] /..")
-            except GLib.Error:
-                continue
-
-            if self._get_verified(comp):
-                self.app_dict[comp_id].add_tag(self.remote.get_name(), "verified")
-
-            dev_name = self._get_developer(comp, locale_variants)
-            if dev_name is not None:
-                # hack: set_project_group() is common in libappstream, so use for temporary storage
-                # to avoid another try/except for set_developer[_name]. It's going to be part of the
-                # cache anyhow.
-                self.app_dict[comp_id].set_project_group(dev_name)
-
-    def _get_verified(self, comp):
-        verified = False
-        try:
-            verified = comp.query("custom/value[(@key='flathub::verification::verified') and (text()='true')]", 1)
-        except:
-            try:
-                verified = comp.query("metadata/value[(@key='flathub::verification::verified') and (text()='true')]", 1)
-            except:
-                pass
-
-        return verified
-
-    def do_query(self, node, query):
-        try:
-            return node.query(query, 1)
-        except:
-            return None
-
-    def _get_developer(self, comp, locale_variants):
-        # "developer" is recent, replacing "developer_name". Currently both are allowed, though older
-        # libappstream doesn't support it, causing us to only see the developer name in mintinstall if they're
-        # still using "developer_name". If all else fails, project_group may have something.
-
-        try:
-            developer_node = comp.query("developer", 1)[0]
-
-            result = None
-            # locale_variants will be something like ["en_US", "en", "C"]
-            for variant in locale_variants:
-                # Look for the name with the matching locale
-                result = self.do_query(developer_node, f"name[@xml:lang='{variant}']")
-
-                if result is not None:
-                    break
-
-            if result is None:
-                # If no locales matched, there should be (??) a non-localized version as well, use that one.
-                result = self.do_query(developer_node, f"name[not(@xml:lang)]")
-
-            if result is not None:
-                return result[0].get_text()
-        except GLib.Error as e:
-            pass
-
-        try:
-            for variant in locale_variants:
-                result = self.do_query(comp, f"developer_name[@xml:lang='{variant}']")
-
-                if result is not None:
-                    break
-
-            if result is None:
-                result = self.do_query(comp, f"developer_name[not(@xml:lang)]")
-
-            if result is not None:
-                return result[0].get_text()
-        except GLib.Error:
-            pass
-
-        try:
-            developer = comp.query("project_group", 1)[0]
-            return developer.get_text() if developer else None
-        except GLib.Error:
-            pass
-
-        return None
 
 def make_pkg_hash(ref):
     if not isinstance(ref, Flatpak.Ref):
@@ -361,15 +161,13 @@ def _add_package_to_cache(cache, rpool, ref, remote_url, installed):
     except KeyError:
         pkginfo = FlatpakPkgInfo(pkg_hash, remote_name, ref, remote_url, installed)
 
+        as_package = None
+
         if rpool is not None:
-            ascomp = rpool.lookup_component(pkginfo, resolve_addons=False)
-            if ascomp is not None:
-                pkginfo.add_cached_ascomp_data(ascomp)
-                pkginfo.verified = ascomp.has_tag(remote_name, "verified")
-                pkginfo.developer = ascomp.get_project_group()
-            else:
-                pkginfo.verified = False
-                pkginfo.developer = None
+            as_package = rpool.lookup_appstream_package(pkginfo)
+        if as_package is not None:
+            debug("Have as package: %s" % as_package.get_bundle_id())
+        pkginfo.add_cached_appstream_data(as_package)
 
         cache[pkg_hash] = pkginfo
 
@@ -393,9 +191,7 @@ def process_full_flatpak_installation(cache):
             except GLib.Error as e:
                 warn("Could not update appstream for %s: %s" % (remote_name, e.message))
 
-            rpool = Pool(remote)
-            rpool.update_xmlb_info()
-
+            rpool = appstream_pool.Pool(remote)
             _process_remote(cache, rpool, fp_sys, remote, arch)
 
             try:
@@ -428,7 +224,7 @@ def _initialize_appstream_thread(cb=None):
 
     try:
         for remote in fp_sys.list_remotes():
-            pool = Pool(remote)
+            pool = appstream_pool.Pool(remote)
             pools[remote.get_name()] = pool
     except (GLib.Error, Exception) as e:
         try:
@@ -471,13 +267,10 @@ def get_remote_or_installed_ref(ref, remote_name):
 
     return None
 
-def create_pkginfo_from_as_component(comp, remote_name, remote_url):
-    name = comp.get_pkgname()
-    branch = comp.get_branch()
+def create_pkginfo_from_as_pkg(as_pkg, remote_name, remote_url):
+    bundle_id = as_pkg.get_bundle_id()
 
-    bundle = comp.get_bundle(AppStream.BundleKind.FLATPAK)
-
-    shallow_ref = Flatpak.Ref.parse(bundle.get_id())
+    shallow_ref = Flatpak.Ref.parse(bundle_id)
 
     ref = get_remote_or_installed_ref(shallow_ref, remote_name)
     if ref is None:
@@ -489,9 +282,13 @@ def create_pkginfo_from_as_component(comp, remote_name, remote_url):
 
     return pkginfo
 
-def search_for_pkginfo_as_component(pkginfo, resolve_addons):
+def search_for_pkginfo_appstream_package(pkginfo):
+    if pkginfo.as_package is not None:
+        return pkginfo.as_package
     try:
-        return pools[pkginfo.remote].lookup_component(pkginfo, resolve_addons)
+        package = pools[pkginfo.remote].lookup_appstream_package(pkginfo)
+        pkginfo.as_package = package
+        return package
     except KeyError:
         return None
 
@@ -571,13 +368,13 @@ def _get_addon_refs_for_pkginfo(parent_pkginfo):
 
     try:
         aspool = pools[parent_pkginfo.remote]
-        ascomp = aspool.lookup_component(parent_pkginfo, resolve_addons=True)
+        as_pkg = aspool.lookup_appstream_package(parent_pkginfo)
 
-        if ascomp is not None:
-            addons = ascomp.get_addons()
+        if as_pkg is not None:
+            addons = as_pkg.get_addons()
 
             for addon in addons:
-                info = create_pkginfo_from_as_component(addon, parent_pkginfo.remote, parent_pkginfo.remote_url)
+                info = create_pkginfo_from_as_pkg(addon, parent_pkginfo.remote, parent_pkginfo.remote_url)
                 if info:
                     addon_refs.append(info.refid)
     except Exception as e:
@@ -679,7 +476,7 @@ class FlatpakTransaction():
             # Always install the corresponding theme if we didn't already
             # have it.
             if self.task.type != "remove":
-                if self.task.asapp is not None and self.task.asapp.get_kind() != AppStream.ComponentKind.ADDON:
+                if self.task.as_pkg is not None and self.task.as_pkg.kind != "addon":
                     for theme_ref in _get_system_theme_matches():
                         try:
                             self.transaction.add_install(theme_ref.get_remote_name(),
@@ -1077,6 +874,7 @@ def generate_uncached_pkginfos(cache):
                         pool = pools[remote_name]
                     except:
                         pool = None
+                    debug("Generate uncached for: %s" % ref.format_ref())
                     _add_package_to_cache(cache, pool, ref, remote.get_url(), True)
 
     except GLib.Error as e:

@@ -4,8 +4,6 @@ from pathlib import Path
 import json
 import threading
 
-import gi
-gi.require_version('AppStream', '1.0')
 from gi.repository import GLib, GObject
 
 from . import _apt
