@@ -258,7 +258,6 @@ class Installer(GObject.Object):
             self.inited = True
 
             self.initialize_appstream()
-            self.generate_uncached_pkginfos(self.cache)
 
             return True
 
@@ -307,8 +306,6 @@ class Installer(GObject.Object):
             self.remotes_changed = False
 
         self.initialize_appstream()
-
-        self.generate_uncached_pkginfos(self.cache)
 
         debug('Full installer startup took %0.3f ms' % ((time.time() - self.startup_timer) * 1000.0))
 
@@ -519,7 +516,7 @@ class Installer(GObject.Object):
         return False
 
     @print_timing
-    def generate_uncached_pkginfos(self, unused=None):
+    def generate_uncached_pkginfos(self):
         """
         Flatpaks installed from .flatpakref files may not actually be in the saved
         pkginfo cache, specifically, if they're added from no-enumerate-marked remotes.
@@ -541,6 +538,7 @@ class Installer(GObject.Object):
         _apt.get_apt_cache()
 
     def on_appstream_loaded(self):
+        self.generate_uncached_pkginfos()
         self.emit("appstream-changed")
 
     def get_appstream_pkg_for_pkginfo(self, pkginfo):

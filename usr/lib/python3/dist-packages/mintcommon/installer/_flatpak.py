@@ -864,8 +864,6 @@ def generate_uncached_pkginfos(cache):
             remote_name = remote.get_name()
 
             for ref in fp_sys.list_installed_refs(None):
-                if not _should_cache_ref(ref, Flatpak.get_default_arch()):
-                    continue
                 # All remotes will see installed refs, but the installed refs will always
                 # report their correct origin, so only add installed refs when they match the remote.
                 if ref.get_origin() == remote_name:
