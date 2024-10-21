@@ -848,10 +848,12 @@ def get_updated_theme_refs():
 def find_pkginfo(cache, string, remote=None):
     for key in cache.get_subset_of_type("f").keys():
         candidate = cache[key]
-        if string == candidate.name:
-            if remote is None:
-                return candidate
-            elif candidate.remote == remote:
+        if string.partition("/")[0] in ("runtime", "app"):
+            if string == candidate.refid:
+                if remote is None or candidate.remote == remote:
+                    return candidate
+        elif string == candidate.name:
+            if remote is None or candidate.remote == remote:
                 return candidate
 
     return None
