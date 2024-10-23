@@ -57,10 +57,10 @@ class MintRemoveWindow:
         if not "flatpak" in desktopFile:
             return False
 
-        if not os.path.exists('/usr/bin/mintinstall-remove-app'):
+        if not os.path.exists('/usr/bin/mint-remove-flatpak'):
             return False
 
-        flatpak_remover = subprocess.Popen(['/usr/bin/mintinstall-remove-app', desktopFile])
+        flatpak_remover = subprocess.Popen(['/usr/bin/mint-remove-flatpak', desktopFile])
         retcode = flatpak_remover.wait()
 
         return retcode == 0
