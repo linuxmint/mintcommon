@@ -224,6 +224,15 @@ def _initialize_appstream_thread(cb=None):
 
     try:
         for remote in fp_sys.list_remotes():
+            try:
+                # This won't always download anything, and if it does, cached info (display name,
+                # summary, icon, verified status) won't be updated until the native package cache
+                # is rebuilt, though that stuff is unlikely to change much over a short period of
+                # time. More importantly, we'll get up-to-date release info, so they match the
+                # Flatpak system for installing/updating.
+                fp_sys.update_appstream_sync(remote.get_name(), None, None)
+            except GLib.Error as e:
+                debug("Problem checking for updated appstream, using existing (may be out of date): %s" % e.message)
             pool = appstream_pool.Pool(remote)
             pools[remote.get_name()] = pool
     except (GLib.Error, Exception) as e:
