@@ -312,10 +312,7 @@ class FlatpakPkgInfo(PkgInfo):
             self.display_name = as_pkg.get_display_name()
 
             summary = as_pkg.get_summary()
-            if summary is not None:
-                summary = summary.replace("<", "&lt;")
-                summary = summary.replace("&", "&amp;")
-            else:
+            if summary is None:
                 summary = ""
 
             self.summary = summary
@@ -374,7 +371,6 @@ class FlatpakPkgInfo(PkgInfo):
 
     def get_version(self, as_pkg=None):
         if self.version:
-            # as_pkg.get_release_default().get_version()
             return self.version
 
         if as_pkg:

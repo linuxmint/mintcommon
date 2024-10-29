@@ -18,7 +18,7 @@ def locale_to_bcp47(locale):
     if locale == None:
         return None
 
-    ret = locale.replace("_", "-")
+    ret = locale
     if "@" in ret:
         ret, variant = ret.split("@")
         if variant == "cyrillic":
@@ -121,43 +121,23 @@ class Package():
         "remote",
         "appstream_dir",
         "xbnode",
-        "locale_variants",
         "kind",
         "verified",
         "bundle_id"
     )
 
-    def __init__(self, name, remote, xbnode, locale_variants):
+    def __init__(self, name, remote, xbnode):
         self.name = name
         self.remote = remote
         self.remote_name = remote.get_name()
         self.appstream_dir = remote.get_appstream_dir()
         self.xbnode = xbnode
-        self.locale_variants = locale_variants
         self.kind = self.xbnode.get_attr("type")
         self.verified = None
         self.bundle_id = None
 
     def get_name(self):
         return self.name
-
-    def query_for_localized_node(self, node, xpath):
-        result = None
-
-        for variant in self.locale_variants:
-            localized_xpath = f"{xpath}[@xml:lang='{variant}']"
-            try:
-                result = node.query_first(localized_xpath)
-                break
-            except GLib.Error as e:
-                debug_query(f"Could not make localized query: {self.remote_name} - {localized_xpath}")
-
-        if result is None:
-            # There will at least be a non-localized version.
-            unlocalized_xpath = f"{xpath}[not(@xml:lang)]"
-            result = self.query_for_node(node, unlocalized_xpath)
-
-        return result
 
     def query_for_node(self, node, xpath):
         result = None
@@ -169,27 +149,23 @@ class Package():
 
         return result
 
-    def query_localized_string(self, node, xpath):
-        str_node = self.query_for_localized_node(node, xpath)
-        return str_node.get_text() if str_node is not None else None
-
     def query_string(self, node, xpath):
         str_node = self.query_for_node(node, xpath)
 
         return str_node.get_text() if str_node is not None else None
 
     def get_display_name(self):
-        name = self.query_localized_string(self.xbnode, "name")
+        name = self.query_string(self.xbnode, "name")
         if name is None:
             name = self.name
 
         return name
 
     def get_summary(self):
-        return self.query_localized_string(self.xbnode, "summary")
+        return self.query_string(self.xbnode, "summary")
 
     def get_description(self):
-        desc_node = self.query_for_localized_node(self.xbnode, "description")
+        desc_node = self.query_for_node(self.xbnode, "description")
 
         if desc_node is not None:
             try:
@@ -258,13 +234,13 @@ class Package():
 
         try:
             developer_node = self.xbnode.query_first("developer")
-            dev_name = self.query_localized_string(developer_node, "name")
+            dev_name = self.query_string(developer_node, "name")
         except:
             pass
 
         if dev_name is None:
             try:
-                dev_name = self.query_localized_string(self.xbnode, "developer_name")
+                dev_name = self.query_string(self.xbnode, "developer_name")
             except:
                 pass
 
@@ -286,7 +262,7 @@ class Package():
         ret = []
 
         for screenshot_node in screenshots:
-            caption = self.query_localized_string(screenshot_node, "caption")
+            caption = self.query_string(screenshot_node, "caption")
             ret.append(Screenshot(screenshot_node, caption))
 
         return ret
@@ -306,7 +282,7 @@ class Package():
         addons = []
         for addon_node in addon_nodes:
             name = self.query_string(addon_node, "id")
-            addon_pkg = Package(name, self.remote, addon_node, self.locale_variants)
+            addon_pkg = Package(name, self.remote, addon_node)
             addons.append(addon_pkg)
 
         return addons
@@ -387,10 +363,27 @@ class Pool():
         self.pkg_hash_to_as_pkg_dict = {}
         self.xmlb_silo = None
 
-        current_locale = locale.getlocale()[0]
-        # GLib.get_locale_variants() will include [locale]
-        self.locale_variants = [locale_to_bcp47(v) for v in GLib.get_locale_variants(current_locale)]
+        self.locale_variants = []
+        tmp = set()
+        # There really needs to be some enforced consistency in appstream.
+        # Need to account for hyphenated vs underscored, and all-lower vs
+        # uppercase region codes.
+        debug("Reported languages: %s" % str(GLib.get_language_names()))
+        for name in GLib.get_language_names():
+            if "." in name:
+                continue
+            if name == "C":
+                continue
 
+            tmp.add(name)
+            tmp.add(name.replace("_", "-"))
+            tmp.add(name.replace("_", "-").lower())
+            tmp.add(name.replace("-", "_"))
+            tmp.add(name.replace("-", "_").lower())
+
+        self.locale_variants = [locale_to_bcp47(v) for v in tmp]
+
+        debug("Appstream languages: %s" % str(self.locale_variants))
         self._load_xmlb_silo()
 
     def lookup_appstream_package(self, pkginfo):
@@ -429,21 +422,27 @@ class Pool():
 
             if base_node is not None:
                 debug("Found matching appstream package: %s" % pkginfo.refid)
-                package = Package(pkginfo.name, self.remote, base_node, self.locale_variants)
+                package = Package(pkginfo.name, self.remote, base_node)
 
         if package is not None:
             self.pkg_hash_to_as_pkg_dict[pkginfo.pkg_hash] = package
 
         return package
 
+    @print_timing
     def _load_xmlb_silo(self):
         xml_file = self.appstream_dir.get_child("appstream.xml")
         source = Xmlb.BuilderSource()
         try:
             ret = source.load_file(xml_file, Xmlb.BuilderSourceFlags.NONE, None)
             builder = Xmlb.Builder()
+            for locale in self.locale_variants:
+                builder.add_locale(locale)
             builder.import_source(source)
-            self.xmlb_silo = builder.compile(Xmlb.BuilderCompileFlags.NONE, None)
+            self.xmlb_silo = builder.compile(
+                Xmlb.BuilderCompileFlags.SINGLE_LANG | Xmlb.BuilderCompileFlags.SINGLE_ROOT,
+                None
+            )
         except GLib.Error as e:
             warn("Could not mmap appstream xml file for remote '%s': %s" % (self.remote.get_name(), e.message))
             self.xmlb_silo = None
