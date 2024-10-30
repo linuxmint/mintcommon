@@ -42,6 +42,7 @@ class PkgInfo:
         "installed",
         "verified",
         "developer",
+        "keywords",
         "as_pkg"
     )
 
@@ -72,6 +73,7 @@ class PkgInfo:
         self.screenshots = []
         self.homepage_url = None
         self.help_url = None
+        self.keywords = None
 
         # Runtime categories
         self.categories = []
@@ -178,6 +180,9 @@ class AptPkgInfo(PkgInfo):
 
         return self.description
 
+    def get_keywords(self):
+        return ""
+
     def get_icon(self, apt_pkg=None, size=64):
         try:
             return self.icon[size]
@@ -282,6 +287,7 @@ class FlatpakPkgInfo(PkgInfo):
         inst.display_name = json_data["display_name"]
         inst.summary = json_data["summary"]
         inst.icon = json_data["icon"]
+        inst.keywords = json_data["keywords"]
         return inst
 
     def to_json(self):
@@ -301,7 +307,8 @@ class FlatpakPkgInfo(PkgInfo):
                     "verified",
                     "display_name",
                     "summary",
-                    "icon"
+                    "icon",
+                    "keywords"
                 )
             }
 
@@ -319,12 +326,18 @@ class FlatpakPkgInfo(PkgInfo):
             self.icon["48"] = as_pkg.get_icon(48)
             self.verified = as_pkg.get_verified()
             self.bundle_id = as_pkg.get_bundle_id()
+
+            try:
+                self.keywords = ",".join(as_pkg.get_keywords())
+            except TypeError:
+                self.keywords = ""
         else:
             self.display_name = self.name
             self.summary = ""
             self.icon = {}
             self.verified = False
             self.bundle_id = None
+            self.keywords = ""
 
     def get_display_name(self):
         return self.display_name
@@ -345,6 +358,9 @@ class FlatpakPkgInfo(PkgInfo):
             return ""
 
         return self.description
+
+    def get_keywords(self):
+        return self.keywords
 
     def get_icon(self, size=64, as_pkg=None):
         try:

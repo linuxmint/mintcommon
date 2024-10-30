@@ -123,7 +123,8 @@ class Package():
         "xbnode",
         "kind",
         "verified",
-        "bundle_id"
+        "bundle_id",
+        "keywords"
     )
 
     def __init__(self, name, remote, xbnode):
@@ -135,6 +136,7 @@ class Package():
         self.kind = self.xbnode.get_attr("type")
         self.verified = None
         self.bundle_id = None
+        self.keywords = []
 
     def get_name(self):
         return self.name
@@ -145,7 +147,7 @@ class Package():
         try:
             result = node.query_first(xpath)
         except GLib.Error as e:
-            debug_query(f"Could not make query: {xpath}")
+            debug_query(f"Could not make query: {xpath} - {e.message}")
 
         return result
 
@@ -251,6 +253,19 @@ class Package():
                 pass
 
         return dev_name
+
+    def get_keywords(self):
+        if len(self.keywords) == 0:
+            kw_node = self.query_for_node(self.xbnode, "keywords")
+
+            if kw_node is None:
+                return []
+
+            keywords = kw_node.query("keyword", 0)
+            for keyword in keywords:
+                self.keywords.append(keyword.get_text())
+
+        return self.keywords
 
     def get_screenshots(self):
         ss_node = self.query_for_node(self.xbnode, "screenshots")
