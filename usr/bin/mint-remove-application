@@ -143,7 +143,7 @@ class MintRemoveWindow:
                                     flags=0,
                                     message_type=Gtk.MessageType.ERROR,
                                     buttons=Gtk.ButtonsType.CLOSE,
-                                    text=_("Cannot remove package %s as it is required by other packages.") % package)
+                                    text=_("Cannot remove package %s as it is required by a system package.") % package)
         warnDlg.set_keep_above(True)
         warnDlg.get_widget_for_response(Gtk.ResponseType.CLOSE).grab_focus()
         warnDlg.vbox.set_spacing(12)
