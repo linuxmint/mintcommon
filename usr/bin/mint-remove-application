@@ -45,13 +45,17 @@ class MintRemoveWindow:
             sys.exit(0)
 
         #get package + dependents (reverse dependencies)
-        rdependencies = subprocess.getoutput("apt-get -s -q remove " + package + " | grep Remv")
-        rdependencies = rdependencies.split("\n")
+        rdependenciesLines = subprocess.getoutput("apt-get -s -q remove " + package + " | grep Remv")
+        rdependenciesLines = rdependenciesLines.split("\n")
+        rdependencies = []
+        for line in rdependenciesLines:
+                rdependencies.append(line.split()[1])
 
-        if len(rdependencies) == 1: #no dependents
-            self.remove_dialog(package, rdependencies)
-        else:
+        dontRemoves = ["cinnamon", "mint-meta-cinnamon", "mint-meta-core", "mint-meta-mate", "mint-meta-xfce"]
+        if any(packageName in dontRemoves for packageName in rdependencies):
             self.no_remove_dialog(package, rdependencies)
+        else:
+            self.remove_dialog(package, rdependencies)
 
     def try_remove_flatpak(self, desktopFile):
         if not "flatpak" in desktopFile:
@@ -84,7 +88,7 @@ class MintRemoveWindow:
         column1.add_attribute(renderer, "text", 0)
         treeview.append_column(column1)
 
-        packages_to_remove = [package] + self.get_autoremovable_dependencies(package)
+        packages_to_remove = rdependencies + self.get_autoremovable_dependencies(package)
         model = Gtk.ListStore(str)
         for item in packages_to_remove:
             model.append([item])
@@ -119,8 +123,7 @@ class MintRemoveWindow:
         if len(output) > 1:
             output = output.split("\n")
             for line in output:
-                line = line.replace("Remv ", "")
-                unreq_before.append(line.split()[0])
+                unreq_before.append(line.split()[1])
 
         #Find autoremovable packages after removal of package
         output = subprocess.getoutput("LC_ALL=C apt-get -s remove " + package)
@@ -140,7 +143,7 @@ class MintRemoveWindow:
                                     flags=0,
                                     message_type=Gtk.MessageType.ERROR,
                                     buttons=Gtk.ButtonsType.CLOSE,
-                                    text=_("Cannot remove package %s as it is required by other packages.") % package)
+                                    text=_("Cannot remove package %s as it is required by a system package.") % package)
         warnDlg.set_keep_above(True)
         warnDlg.get_widget_for_response(Gtk.ResponseType.CLOSE).grab_focus()
         warnDlg.vbox.set_spacing(12)
