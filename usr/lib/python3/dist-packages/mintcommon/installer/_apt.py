@@ -117,11 +117,7 @@ def process_full_apt_cache(cache):
         else:
             section = section_string
 
-        try:
-            sections[section].append(pkg_hash)
-        except Exception:
-            sections[section] = []
-            sections[section].append(pkg_hash)
+        sections.setdefault(section, []).append(pkg_hash)
 
         cache[pkg_hash] = AptPkgInfo(pkg_hash, pkg)
 
