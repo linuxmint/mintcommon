@@ -51,7 +51,7 @@ class InstallerTask:
         self.is_addon_task = is_addon_task
 
         # AsApp if available
-        self.asapp = None
+        self.as_pkg = None
 
         self.name = None
 
@@ -258,7 +258,6 @@ class Installer(GObject.Object):
             self.inited = True
 
             self.initialize_appstream()
-            self.generate_uncached_pkginfos(self.cache)
 
             return True
 
@@ -307,8 +306,6 @@ class Installer(GObject.Object):
             self.remotes_changed = False
 
         self.initialize_appstream()
-
-        self.generate_uncached_pkginfos(self.cache)
 
         debug('Full installer startup took %0.3f ms' % ((time.time() - self.startup_timer) * 1000.0))
 
@@ -391,7 +388,7 @@ class Installer(GObject.Object):
             task.type = InstallerTask.INSTALL_TASK
 
         task.set_version(self)
-        task.asapp = self.get_appstream_app_for_pkginfo(pkginfo)
+        task.as_pkg = self.get_appstream_pkg_for_pkginfo(pkginfo)
 
         if pkginfo.pkg_hash.startswith("a"):
             _apt.select_packages(task)
@@ -421,7 +418,7 @@ class Installer(GObject.Object):
         _flatpak.select_updates(task)
 
 
-    def create_addon_task(self, comp, remote_name, remote_url,
+    def create_addon_task(self, as_pkg, remote_name, remote_url,
                           client_info_ready_callback, client_info_error_callback,
                           client_installer_finished_cb, client_installer_progress_cb,
                           use_mainloop=False):
@@ -443,11 +440,11 @@ class Installer(GObject.Object):
 
             _flatpak.select_packages(task)
 
-        def create_pkginfo_thread(comp, remote_name, remote_url):
-            pkginfo = _flatpak.create_pkginfo_from_as_component(comp, remote_name, remote_url)
+        def create_pkginfo_thread(as_pkg, remote_name, remote_url):
+            pkginfo = _flatpak.create_pkginfo_from_as_pkg(as_pkg, remote_name, remote_url)
             GLib.idle_add(pkginfo_ready, pkginfo, priority=GLib.PRIORITY_DEFAULT)
 
-        t = threading.Thread(target=create_pkginfo_thread, args=(comp, remote_name, remote_url))
+        t = threading.Thread(target=create_pkginfo_thread, args=(as_pkg, remote_name, remote_url))
         t.start()
 
     def list_updated_flatpak_pkginfos(self):
@@ -519,7 +516,7 @@ class Installer(GObject.Object):
         return False
 
     @print_timing
-    def generate_uncached_pkginfos(self, unused=None):
+    def generate_uncached_pkginfos(self):
         """
         Flatpaks installed from .flatpakref files may not actually be in the saved
         pkginfo cache, specifically, if they're added from no-enumerate-marked remotes.
@@ -531,7 +528,7 @@ class Installer(GObject.Object):
     @print_timing
     def initialize_appstream(self):
         """
-        Loads and caches the AppStream pools so they can be used to provide
+        Loads and caches the xmlb pools so they can be used to provide
         display info for packages.
         """
         if self.have_flatpak:
@@ -541,9 +538,10 @@ class Installer(GObject.Object):
         _apt.get_apt_cache()
 
     def on_appstream_loaded(self):
+        self.generate_uncached_pkginfos()
         self.emit("appstream-changed")
 
-    def get_appstream_app_for_pkginfo(self, pkginfo, resolve_addons=False):
+    def get_appstream_pkg_for_pkginfo(self, pkginfo):
         backend_component = None
 
         if pkginfo.pkg_hash.startswith("a"):
@@ -551,7 +549,7 @@ class Installer(GObject.Object):
             if backend_component is not None:
                 self.backend_table[pkginfo] = backend_component
         else:
-            backend_component = _flatpak.search_for_pkginfo_as_component(pkginfo, resolve_addons)
+            backend_component = _flatpak.search_for_pkginfo_appstream_package(pkginfo)
 
         return backend_component
 
@@ -563,17 +561,12 @@ class Installer(GObject.Object):
         if pkginfo.pkg_hash.startswith("a"):
             debug("launch_flatpak: pkginfo is not a flatpak")
 
-        comp = self.get_appstream_app_for_pkginfo(pkginfo)
+        as_pkg = self.get_appstream_pkg_for_pkginfo(pkginfo)
 
-        if comp is None:
+        if as_pkg is None:
             return None
 
-        launchables = comp.get_launchables()
-
-        if len(launchables) == 0:
-            return None
-
-        return launchables
+        return as_pkg.get_launchables()
 
     def get_flatpak_root_path(self):
         """
@@ -590,37 +583,17 @@ class Installer(GObject.Object):
         if pkginfo.pkg_hash.startswith("a"):
             return None
 
-        comp = self.get_appstream_app_for_pkginfo(pkginfo, resolve_addons=True)
+        as_pkg = self.get_appstream_pkg_for_pkginfo(pkginfo)
 
-        if comp is None:
+        if as_pkg is None:
             return None
-        addons = comp.get_addons()
+
+        addons = as_pkg.get_addons()
 
         if len(addons) == 0:
             return None
 
         return addons
-
-    def get_display_name(self, pkginfo):
-        """
-        Returns the name of the package formatted for displaying
-        """
-        if pkginfo.pkg_hash.startswith("a"):
-            return pkginfo.get_display_name()
-
-        comp = self.get_appstream_app_for_pkginfo(pkginfo)
-        return pkginfo.get_display_name(comp)
-
-    def get_summary(self, pkginfo, for_search=False):
-        """
-        Returns the summary of the package.  If for_search is True,
-        this is the raw, unformatted string in the case of apt.
-        """
-        if pkginfo.pkg_hash.startswith("a"):
-            return pkginfo.get_summary()
-
-        comp = self.get_appstream_app_for_pkginfo(pkginfo)
-        return pkginfo.get_summary(comp)
 
     def get_description(self, pkginfo, for_search=False):
         """
@@ -633,34 +606,32 @@ class Installer(GObject.Object):
             except Exception:
                 pass
 
-        comp = self.get_appstream_app_for_pkginfo(pkginfo)
-        return pkginfo.get_description(comp)
-
-    def get_icon(self, pkginfo, size):
-        """
-        Returns the icon name (or path) to display for the package
-        """
-        if pkginfo.pkg_hash.startswith("a"):
-            return pkginfo.get_icon()
-
-        comp = self.get_appstream_app_for_pkginfo(pkginfo)
-        return pkginfo.get_icon(comp, size)
+        as_pkg = self.get_appstream_pkg_for_pkginfo(pkginfo)
+        return pkginfo.get_description(as_pkg)
 
     def get_screenshots(self, pkginfo):
         """
         Returns a list of screenshot urls
         """
-        comp = self.get_appstream_app_for_pkginfo(pkginfo)
+        as_pkg = self.get_appstream_pkg_for_pkginfo(pkginfo)
 
-        return pkginfo.get_screenshots(comp)
+        return pkginfo.get_screenshots(as_pkg)
 
     def get_version(self, pkginfo):
         """
         Returns the current version string, if available
         """
-        comp = self.get_appstream_app_for_pkginfo(pkginfo)
+        as_pkg = self.get_appstream_pkg_for_pkginfo(pkginfo)
 
-        return pkginfo.get_version(comp)
+        return pkginfo.get_version(as_pkg)
+
+    def get_developer(self, pkginfo):
+        """
+        Returns the current version string, if available
+        """
+        as_pkg = self.get_appstream_pkg_for_pkginfo(pkginfo)
+
+        return pkginfo.get_developer(as_pkg)
 
     def get_installed_version(self, pkginfo):
         """
@@ -670,7 +641,7 @@ class Installer(GObject.Object):
             # apt packages we don't really need to make a distinction.
             return self.get_version(pkginfo)
         else:
-            # flatpak packages, the appstream component shows the latest version provided in the xml,
+            # flatpak packages, the appstream as_pkg shows the latest version provided in the xml,
             # not the actual installed version.
             return _flatpak._get_deployed_version(pkginfo)
 
@@ -680,9 +651,9 @@ class Installer(GObject.Object):
         no url for the package, in the case of flatpak, the remote's url
         is displayed instead
         """
-        comp = self.get_appstream_app_for_pkginfo(pkginfo)
+        as_pkg = self.get_appstream_pkg_for_pkginfo(pkginfo)
 
-        return pkginfo.get_homepage_url(comp)
+        return pkginfo.get_homepage_url(as_pkg)
 
     def get_help_url(self, pkginfo):
         """
@@ -690,9 +661,9 @@ class Installer(GObject.Object):
         no url for the package, returns an empty string. Apt always returns
         an empty string.
         """
-        comp = self.get_appstream_app_for_pkginfo(pkginfo)
+        as_pkg = self.get_appstream_pkg_for_pkginfo(pkginfo)
 
-        return pkginfo.get_help_url(comp)
+        return pkginfo.get_help_url(as_pkg)
 
     def is_busy(self):
         return len(self.tasks.keys()) > 0

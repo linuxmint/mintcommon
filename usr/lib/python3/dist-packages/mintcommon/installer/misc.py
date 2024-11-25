@@ -5,8 +5,24 @@ import time
 import inspect
 import threading
 import sys
+import html2text
+import html2text.config
 
 DEBUG_MODE = os.getenv("DEBUG", False)
+DEBUG_QUERIES = os.getenv("DEBUG_QUERIES", False)
+
+class dash_match_dummy():
+    def sub(self, a, b):
+        return b
+
+# html2text wants to escape content (not markdown) dashes.
+html2text.config.RE_MD_DASH_MATCHER = dash_match_dummy()
+html_converter = html2text.HTML2Text()
+# Asterisks are lame - appstream's converter used bullets.
+html_converter.ul_item_mark = "•"
+html_converter.wrap_list_items = True
+html_converter.ignore_emphasis = True
+html_converter.pad_tables = True
 
 # Used as a decorator to time functions
 def print_timing(func):
@@ -40,7 +56,23 @@ def debug(*args):
     argstr = " ".join(sanitized)
     print("mint-common (DEBUG): %s" % argstr, file=sys.stderr, flush=True)
 
+def debug_query(*args):
+    if not DEBUG_QUERIES:
+        return
+    sanitized = [str(arg) for arg in args if arg is not None]
+    argstr = " ".join(sanitized)
+    print("mint-common (DEBUG): %s" % argstr, file=sys.stderr, flush=True)
+
 def warn(*args):
     sanitized = [str(arg) for arg in args if arg is not None]
     argstr = " ".join(sanitized)
     print("mint-common (WARN): %s" % argstr, file=sys.stderr, flush=True)
+
+def xml_markup_convert_to_text(markup):
+    if markup is None:
+        return ""
+    try:
+        return html_converter.handle(markup)
+    except Exception as e:
+        warn("Could not convert description to text: %s" % str(e))
+        return markup

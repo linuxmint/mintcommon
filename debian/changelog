@@ -1,3 +1,51 @@
+mint-common (2.3.9) wilma; urgency=medium
+
+  [ Michael Webster ]
+  * flatpak: Use a set() instead of array when gathering locale variants.
+
+ -- Clement Lefebvre <root@linuxmint.com>  Sun, 04 Aug 2024 13:46:53 +0100
+
+mint-common (2.3.8) wilma; urgency=medium
+
+  [ Michael Webster ]
+  * flatpaks: backport locale utility function from appstream 1.0+.
+  * pkginfo: Fall back to html2text if the appstream library doesn't contain AppStream.markup_convert().
+
+ -- Clement Lefebvre <root@linuxmint.com>  Fri, 26 Jul 2024 17:33:56 +0100
+
+mint-common (2.3.7) wilma; urgency=medium
+
+  [ Michael Webster ]
+  * pkgInfo: Filter out apt packages without a candidate, they're broken to mintinstall/mintcommon.
+
+ -- Clement Lefebvre <root@linuxmint.com>  Fri, 19 Jul 2024 14:53:20 +0100
+
+mint-common (2.3.6) wilma; urgency=medium
+
+  [ Michael Webster ]
+  * flatpaks: Also check <metadata> for the verified tag.
+  * flatpak: Get the developer name for the current locale.
+  * pkginfo: Fix flatpak description formatting.
+  * flatpak: Don't add installed runtimes to the in-memory package cache.
+  * pkginfo: Use AppStream's function for formatting flatpak descriptions.
+
+ -- Clement Lefebvre <root@linuxmint.com>  Wed, 17 Jul 2024 15:59:26 +0100
+
+mint-common (2.3.5) wilma; urgency=medium
+
+  [ Michael Webster ]
+  * cache: Don't search for apt packages with the flatpak lookup.
+
+ -- Clement Lefebvre <root@linuxmint.com>  Sat, 06 Jul 2024 00:25:18 +0100
+
+mint-common (2.3.4) wilma; urgency=medium
+
+  [ Michael Webster ]
+  * Fix cache lookup for incomplete flatpak ref strings.
+  * flatpaks: When updating the cache, fetch an updated appstream file before creating a remote Pool.
+
+ -- Clement Lefebvre <root@linuxmint.com>  Fri, 05 Jul 2024 20:59:35 +0100
+
 mint-common (2.3.3) wilma; urgency=medium
 
   [ Michael Webster ]

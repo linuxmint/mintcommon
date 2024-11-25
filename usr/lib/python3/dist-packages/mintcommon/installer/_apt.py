@@ -3,7 +3,6 @@ import threading
 import apt
 
 import gi
-gi.require_version('AppStream', '1.0')
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
 gi.require_version("PackageKitGlib", "1.0")
@@ -97,6 +96,8 @@ def process_full_apt_cache(cache):
             continue
         if name == "pepperflashplugin-nonfree": # formerly marked broken, it's now a dummy and has no dependents (and only exists in Mint 20).
             continue
+        if pkg.candidate is None:
+            continue
         if ":" in name and name.split(":")[0] in keys:
             continue
         try:
@@ -109,30 +110,20 @@ def process_full_apt_cache(cache):
 
         pkg_hash = make_pkg_hash(pkg)
 
-        if pkg.candidate:
-            section_string = pkg.candidate.section
+        section_string = pkg.candidate.section
 
-            if "/" in section_string:
-                section = section_string.split("/")[1]
-            else:
-                section = section_string
+        if "/" in section_string:
+            section = section_string.split("/")[1]
+        else:
+            section = section_string
 
-            sections.setdefault(section, []).append(pkg_hash)
+        sections.setdefault(section, []).append(pkg_hash)
 
         cache[pkg_hash] = AptPkgInfo(pkg_hash, pkg)
 
     debug('Installer: Processing APT packages for cache took %0.3f ms' % ((time.time() - apt_time) * 1000.0))
 
     return cache, sections
-
-# def initialize_appstream():
-#     global _as_pool
-
-#     if _as_pool == None:
-#         pool = AppStream.Pool()
-#         pool.set_cache_flags(AppStream.CacheFlags.NONE)
-#         pool.load()
-#         _as_pool = pool
 
 def search_for_pkginfo_apt_pkg(pkginfo):
     name = pkginfo.name

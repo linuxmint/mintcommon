@@ -4,8 +4,6 @@ from pathlib import Path
 import json
 import threading
 
-import gi
-gi.require_version('AppStream', '1.0')
 from gi.repository import GLib, GObject
 
 from . import _apt
@@ -20,7 +18,7 @@ USER_CACHE_PATH = os.path.join(GLib.get_user_cache_dir(), "mintinstall", "pkginf
 
 MAX_AGE = 7 * (60 * 60 * 24) # days
 
-CACHE_SCHEMA_VERSION = 2
+CACHE_SCHEMA_VERSION = 3
 
 class CacheLoadingError(Exception):
     """Thrown when there was an issue loading the pickled package set"""
@@ -302,6 +300,8 @@ class PkgCache(object):
         try:
             return self[string]
         except KeyError:
+            if string[0:4] == "apt:":
+                return None
             if self.have_flatpak:
                 pkginfo = _flatpak.find_pkginfo(self, string, remote)
                 if pkginfo is not None:
