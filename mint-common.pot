@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-11-29 14:37+0000\n"
+"POT-Creation-Date: 2024-11-26 10:25+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -23,22 +23,26 @@ msgid ""
 "from the menu anyway?"
 msgstr ""
 
-#: usr/bin/cinnamon-remove-application:74 usr/bin/mint-remove-application:74
+#: usr/bin/cinnamon-remove-application:78 usr/bin/mint-remove-application:78
 msgid "The following packages will be removed:"
 msgstr ""
 
-#: usr/bin/cinnamon-remove-application:81 usr/bin/mint-remove-application:81
+#: usr/bin/cinnamon-remove-application:85 usr/bin/mint-remove-application:85
 msgid "Packages to be removed"
 msgstr ""
 
-#: usr/bin/cinnamon-remove-application:143 usr/bin/mint-remove-application:143
+#: usr/bin/cinnamon-remove-application:146 usr/bin/mint-remove-application:146
 #, python-format
-msgid "Cannot remove package %s as it is required by other packages."
+msgid "Cannot remove package %s as it is required by a system package."
 msgstr ""
 
-#: usr/bin/cinnamon-remove-application:149 usr/bin/mint-remove-application:149
+#: usr/bin/cinnamon-remove-application:152 usr/bin/mint-remove-application:152
 #, python-format
 msgid "Package %s is a dependency of the following packages:"
+msgstr ""
+
+#: usr/bin/mint-remove-flatpak:59
+msgid "Removing"
 msgstr ""
 
 #: usr/lib/python3/dist-packages/mintcommon/installer/dialogs.py:39
@@ -139,6 +143,6 @@ msgstr ""
 msgid "Flatpak"
 msgstr ""
 
-#: usr/lib/python3/dist-packages/mintcommon/installer/dialogs.py:332
+#: usr/lib/python3/dist-packages/mintcommon/installer/dialogs.py:324
 msgid "An error occurred"
 msgstr ""
