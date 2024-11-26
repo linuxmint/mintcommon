@@ -1,3 +1,26 @@
+mint-common (2.4.0) xia; urgency=medium
+
+  [ Michael Webster ]
+  * Use xmlb instead of AppStream for working with flatpak appstream files.
+  * flatpaks: Don't process installed refs until appstream data has been loaded.
+  * Fix a warning message.
+  * Allow pkginfo lookup to accept FlatpakRef string in addition to a simple name.
+  * Add mint-remove-flatpak.
+  * Let xmlb load only desired language nodes, instead of relying on language-restricted xpath queries.
+  * Always check for updated appstream at startup.
+  * Add keywords to the cache.
+
+  [ fredcw ]
+  * mint-remove-application: only disallow removal ... (#59)
+
+  [ Soumya Roy ]
+  * _apt.py : Used setdefault method to initialize sections dictionary (#60)
+
+  [ Clement Lefebvre ]
+  * l10n: Update POT
+
+ -- Clement Lefebvre <root@linuxmint.com>  Tue, 26 Nov 2024 10:25:48 +0000
+
 mint-common (2.3.9) wilma; urgency=medium
 
   [ Michael Webster ]
