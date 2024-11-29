@@ -287,6 +287,7 @@ def create_pkginfo_from_as_pkg(as_pkg, remote_name, remote_url):
 
     pkg_hash = make_pkg_hash(ref)
     pkginfo = FlatpakPkgInfo(pkg_hash, remote_name, ref, remote_url)
+    pkginfo.add_cached_appstream_data(as_pkg)
     pkginfo.installed = isinstance(ref, Flatpak.InstalledRef)
 
     return pkginfo
@@ -370,10 +371,10 @@ def _get_related_refs_for_removal(parent_pkginfo):
                                                                  None)
     return related_refs
 
-def _get_addon_refs_for_pkginfo(parent_pkginfo):
+def _get_addons_for_pkginfo(parent_pkginfo):
     global pools
 
-    addon_refs = []
+    matched_addons = []
 
     try:
         aspool = pools[parent_pkginfo.remote]
@@ -385,11 +386,51 @@ def _get_addon_refs_for_pkginfo(parent_pkginfo):
             for addon in addons:
                 info = create_pkginfo_from_as_pkg(addon, parent_pkginfo.remote, parent_pkginfo.remote_url)
                 if info:
-                    addon_refs.append(info.refid)
+                    # No runtime ref in the metadata: assume it's ok.
+                    if _addon_is_compatible(parent_pkginfo, info):
+                        matched_addons.append(info)
     except Exception as e:
         debug(str(e))
 
-    return addon_refs
+    return matched_addons
+
+def _get_metadata(remote_name, ref):
+    try:
+        # RemoteRef
+        meta = ref.get_metadata()
+    except AttributeError:
+        meta = get_fp_sys().fetch_remote_metadata_sync(remote_name, ref, None)
+
+    data = meta.get_data().decode()
+
+    keyfile = GLib.KeyFile.new()
+    keyfile.load_from_data(data, len(data), GLib.KeyFileFlags.NONE)
+
+    return keyfile
+
+def _addon_is_compatible(parent, addon):
+    # Get the extension point name
+    addon_prefix = addon.name.rpartition(".")[0]  #org.gimp.GIMP.Plugin.BIMP -> org.gimp.GIMP.Plugin
+    ref = Flatpak.Ref.parse(parent.refid)
+
+    parent_meta = _get_metadata(parent.remote, ref)
+    ext_point = f"Extension {addon_prefix}"
+    versions = []
+
+    try:
+        versions = [parent_meta.get_string(ext_point, "version")]
+    except GLib.Error as e:
+        try:
+            versions = parent_meta.get_string_list(ext_point, "versions")
+        except:
+            pass
+
+    if len(versions) == 0:
+        return True
+
+    for version in versions:
+        if addon.branch == version:
+            return True
 
 def select_packages(task):
     task.transaction = FlatpakTransaction(task)
@@ -443,9 +484,9 @@ class FlatpakTransaction():
                 if not self.task.is_addon_task:
                     for related_ref in _get_related_refs_for_removal(self.task.pkginfo):
                         self.transaction.add_uninstall(related_ref.format_ref())
-                    for addon_formatted_ref in _get_addon_refs_for_pkginfo(self.task.pkginfo):
+                    for addon_info in _get_addons_for_pkginfo(self.task.pkginfo):
                         try:
-                            self.transaction.add_uninstall(addon_formatted_ref)
+                            self.transaction.add_uninstall(addon_info.refid)
                         except GLib.Error as e:
                             if e.code != Flatpak.Error.NOT_INSTALLED:
                                 warn("Could not add uninstall for addon '%s': %s" % (addon_formatted_ref, e.message))
@@ -577,6 +618,9 @@ class FlatpakTransaction():
         # If the user cancelled the operation, cancel the transaction, but don't log it.
         if error.code == Gio.IOErrorEnum.CANCELLED:
             return False
+
+        if self.task.type == self.task.UNINSTALL_TASK and error.code == Flatpak.Error.NOT_INSTALLED:
+            return True
 
         self.op_error = error
         self.log_operation_result(operation, None, error)
@@ -714,22 +758,6 @@ class FlatpakTransaction():
                 return
 
         ref_list.append(ref)
-
-    def _get_runtime_ref_from_remote_metadata(self, remote_name, ref_str):
-        runtime_ref = None
-
-        ref = Flatpak.Ref.parse(ref_str)
-
-        meta = get_fp_sys().fetch_remote_metadata_sync(remote_name, ref, None)
-        data = meta.get_data().decode()
-
-        keyfile = GLib.KeyFile.new()
-        keyfile.load_from_data(data, len(data), GLib.KeyFileFlags.NONE)
-
-        runtime = keyfile.get_string("Application", "runtime")
-        runtime_ref = Flatpak.Ref.parse("runtime/%s" % runtime)
-
-        return runtime_ref.format_ref()
 
     def _confirm_transaction(self):
         # only show a confirmation if:

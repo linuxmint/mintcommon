@@ -23,7 +23,6 @@ class PkgInfo:
         "name",
         "pkg_hash",
         "refid",
-        "bundle_id"
         "remote",
         "kind",
         "arch",
@@ -61,7 +60,6 @@ class PkgInfo:
         self.branch = ""
         self.commit = ""
         self.remote_url = ""
-        self.bundle_id = None
 
         # Display info fetched by methods always
         self.display_name = None
@@ -276,7 +274,6 @@ class FlatpakPkgInfo(PkgInfo):
         inst.pkg_hash = json_data["pkg_hash"]
         inst.name = json_data["name"]
         inst.refid = json_data["refid"]
-        inst.bundle_id = json_data["bundle_id"]
         inst.remote = json_data["remote"]
         inst.kind = json_data["kind"]
         inst.arch = json_data["arch"]
@@ -297,7 +294,6 @@ class FlatpakPkgInfo(PkgInfo):
                     "pkg_hash",
                     "name",
                     "refid",
-                    "bundle_id",
                     "remote",
                     "kind",
                     "arch",
@@ -316,6 +312,7 @@ class FlatpakPkgInfo(PkgInfo):
 
     def add_cached_appstream_data(self, as_pkg):
         if as_pkg:
+            self.as_package = as_pkg
             self.display_name = as_pkg.get_display_name()
 
             summary = as_pkg.get_summary()
@@ -325,7 +322,6 @@ class FlatpakPkgInfo(PkgInfo):
             self.summary = summary
             self.icon["48"] = as_pkg.get_icon(48)
             self.verified = as_pkg.get_verified()
-            self.bundle_id = as_pkg.get_bundle_id()
 
             try:
                 self.keywords = ",".join(as_pkg.get_keywords())
@@ -336,7 +332,6 @@ class FlatpakPkgInfo(PkgInfo):
             self.summary = ""
             self.icon = {}
             self.verified = False
-            self.bundle_id = None
             self.keywords = ""
 
     def get_display_name(self):

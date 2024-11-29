@@ -417,36 +417,6 @@ class Installer(GObject.Object):
 
         _flatpak.select_updates(task)
 
-
-    def create_addon_task(self, as_pkg, remote_name, remote_url,
-                          client_info_ready_callback, client_info_error_callback,
-                          client_installer_finished_cb, client_installer_progress_cb,
-                          use_mainloop=False):
-
-        def pkginfo_ready(pkginfo):
-            task = InstallerTask(pkginfo, self,
-                                 client_info_ready_callback, client_info_error_callback,
-                                 client_installer_finished_cb, client_installer_progress_cb,
-                                 self._task_finished, self._task_error,
-                                 is_addon_task=True,
-                                 use_mainloop=use_mainloop)
-
-            if pkginfo.installed:
-                task.type = InstallerTask.UNINSTALL_TASK
-            else:
-                task.type = InstallerTask.INSTALL_TASK
-
-            task.set_version(self)
-
-            _flatpak.select_packages(task)
-
-        def create_pkginfo_thread(as_pkg, remote_name, remote_url):
-            pkginfo = _flatpak.create_pkginfo_from_as_pkg(as_pkg, remote_name, remote_url)
-            GLib.idle_add(pkginfo_ready, pkginfo, priority=GLib.PRIORITY_DEFAULT)
-
-        t = threading.Thread(target=create_pkginfo_thread, args=(as_pkg, remote_name, remote_url))
-        t.start()
-
     def list_updated_flatpak_pkginfos(self):
         """
         Returns a list of flatpak pkginfos that can be updated.  Unlike
@@ -583,12 +553,7 @@ class Installer(GObject.Object):
         if pkginfo.pkg_hash.startswith("a"):
             return None
 
-        as_pkg = self.get_appstream_pkg_for_pkginfo(pkginfo)
-
-        if as_pkg is None:
-            return None
-
-        addons = as_pkg.get_addons()
+        addons = _flatpak._get_addons_for_pkginfo(pkginfo)
 
         if len(addons) == 0:
             return None

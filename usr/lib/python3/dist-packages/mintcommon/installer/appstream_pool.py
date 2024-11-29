@@ -207,8 +207,16 @@ class Package():
         return newest_version
 
     def get_bundle_id(self):
+        bundle_id = None
+
         if self.bundle_id is None:
-            self.bundle_id = self.query_string(self.xbnode, "bundle[@type='flatpak']")
+            bundle_id = self.query_string(self.xbnode, "bundle[@type='flatpak']")
+            # GNOME apps tend to have bundle info under <custom>
+            if bundle_id is None:
+                self.bundle_id = self.query_string(self.xbnode, "custom/bundle[@type='flatpak']")
+
+        if bundle_id is not None:
+            self.bundle_id = bundle_id
 
         return self.bundle_id
 
@@ -402,7 +410,7 @@ class Pool():
         self._load_xmlb_silo()
 
     def lookup_appstream_package(self, pkginfo):
-        debug("Lookup appstream package for %s" % pkginfo.refid)
+        debug_query("Lookup appstream package for %s" % pkginfo.refid)
         if self.xmlb_silo is None:
             return None
 
@@ -410,7 +418,7 @@ class Pool():
 
         try:
             package = self.pkg_hash_to_as_pkg_dict[pkginfo.pkg_hash]
-            debug("Found existing appstream package")
+            debug_query("Found existing appstream package")
             return package
         except KeyError:
             base_node = None
@@ -433,10 +441,10 @@ class Pool():
                                 base_node = node
                                 break
             except GLib.Error as e:
-                debug("Could not find appstream package")
+                debug_query("Could not find appstream package")
 
             if base_node is not None:
-                debug("Found matching appstream package: %s" % pkginfo.refid)
+                debug_query("Found matching appstream package: %s" % pkginfo.refid)
                 package = Package(pkginfo.name, self.remote, base_node)
 
         if package is not None:
