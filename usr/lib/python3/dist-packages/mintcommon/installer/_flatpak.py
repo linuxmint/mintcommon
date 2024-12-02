@@ -375,7 +375,6 @@ def _get_addons_for_pkginfo(parent_pkginfo):
     global pools
 
     matched_addons = []
-
     try:
         aspool = pools[parent_pkginfo.remote]
         as_pkg = aspool.lookup_appstream_package(parent_pkginfo)
@@ -386,11 +385,10 @@ def _get_addons_for_pkginfo(parent_pkginfo):
             for addon in addons:
                 info = create_pkginfo_from_as_pkg(addon, parent_pkginfo.remote, parent_pkginfo.remote_url)
                 if info:
-                    # No runtime ref in the metadata: assume it's ok.
                     if _addon_is_compatible(parent_pkginfo, info):
                         matched_addons.append(info)
     except Exception as e:
-        debug(str(e))
+        warn("Could not get a list of addons: %s" % str(e))
 
     return matched_addons
 
@@ -410,27 +408,61 @@ def _get_metadata(remote_name, ref):
 
 def _addon_is_compatible(parent, addon):
     # Get the extension point name
-    addon_prefix = addon.name.rpartition(".")[0]  #org.gimp.GIMP.Plugin.BIMP -> org.gimp.GIMP.Plugin
-    ref = Flatpak.Ref.parse(parent.refid)
+    parent_meta = _get_metadata(parent.remote, Flatpak.Ref.parse(parent.refid))
+    child_meta = _get_metadata(addon.remote, Flatpak.Ref.parse(addon.refid))
 
-    parent_meta = _get_metadata(parent.remote, ref)
+    # When multiple extensions of the same type can be used, the
+    # addon's ID will have the prefix of its intended extension point:
+    # org.gimp.GIMP.Plugin.BIMP -> org.gimp.GIMP.Plugin.
+    #
+    # Plugins built with the primary package will have their full name as
+    # the extension group.
+    addon_prefix = addon.name.rpartition(".")[0]
     ext_point = f"Extension {addon_prefix}"
-    versions = []
 
+    # Addons should always have a 'ref' field, at minimum, to match them with their app.
     try:
-        versions = [parent_meta.get_string(ext_point, "version")]
-    except GLib.Error as e:
+        eo_ref = child_meta.get_string("ExtensionOf", "ref")
+        if eo_ref != parent.refid:
+            return False
+    except:
+        pass
+
+    groups, l = parent_meta.get_groups()
+
+    for group in groups:
+        # skip irrelevant groups
+        if not group.startswith("Extension "):
+            continue
+        if group not in (ext_point, f"Extension {addon.name}"):
+            continue
+
+        # Look for a version field, see if it matches the addon's branch
+        versions = []
         try:
-            versions = parent_meta.get_string_list(ext_point, "versions")
-        except:
+            versions = parent_meta.get_string_list(group, "versions")
+        except GLib.Error as e:
+            try:
+                versions = [parent_meta.get_string(group, "version")]
+            except:
+                pass
+        if len(versions) > 0:
+            return addon.branch in versions
+
+        # See if the extension specifies a runtime, and if it matches the app's.
+        # This may end up filtering out some valid addons if no extension versioning
+        # is used, but...
+        try:
+            child_runtime = child_meta.get_string("ExtensionOf", "runtime")
+            parent_runtime = parent_meta.get_string("Application", "runtime")
+
+            if child_runtime != parent_runtime:
+                return False
+        except GLib.Error as e:
             pass
 
-    if len(versions) == 0:
-        return True
-
-    for version in versions:
-        if addon.branch == version:
-            return True
+    # All else fails, let it thru anyhow. Who knows? Do you??
+    return True
 
 def select_packages(task):
     task.transaction = FlatpakTransaction(task)

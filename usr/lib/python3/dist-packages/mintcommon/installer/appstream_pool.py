@@ -215,8 +215,8 @@ class Package():
             if bundle_id is None:
                 self.bundle_id = self.query_string(self.xbnode, "custom/bundle[@type='flatpak']")
 
-        if bundle_id is not None:
-            self.bundle_id = bundle_id
+            if bundle_id is not None:
+                self.bundle_id = bundle_id
 
         return self.bundle_id
 
