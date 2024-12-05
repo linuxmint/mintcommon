@@ -293,11 +293,8 @@ def create_pkginfo_from_as_pkg(as_pkg, remote_name, remote_url):
     return pkginfo
 
 def search_for_pkginfo_appstream_package(pkginfo):
-    if pkginfo.as_package is not None:
-        return pkginfo.as_package
     try:
         package = pools[pkginfo.remote].lookup_appstream_package(pkginfo)
-        pkginfo.as_package = package
         return package
     except KeyError:
         return None

@@ -339,6 +339,8 @@ class Installer(GObject.Object):
             if len(saved_remotes) != real_remote_count:
                 changed = True
 
+        debug("Remotes have changed:", changed)
+
         return changed
 
     @print_timing

@@ -41,8 +41,7 @@ class PkgInfo:
         "installed",
         "verified",
         "developer",
-        "keywords",
-        "as_pkg"
+        "keywords"
     )
 
     def __init__(self, pkg_hash=None):
@@ -75,7 +74,6 @@ class PkgInfo:
 
         # Runtime categories
         self.categories = []
-        self.as_package = None
 
 class AptPkgInfo(PkgInfo):
     def __init__(self, pkg_hash=None, apt_pkg=None):
@@ -312,7 +310,6 @@ class FlatpakPkgInfo(PkgInfo):
 
     def add_cached_appstream_data(self, as_pkg):
         if as_pkg:
-            self.as_package = as_pkg
             self.display_name = as_pkg.get_display_name()
 
             summary = as_pkg.get_summary()
