@@ -404,6 +404,10 @@ class Pool():
             tmp.add(name.replace("-", "_"))
             tmp.add(name.replace("-", "_").lower())
 
+        # Live session has only C.UTF-8, assume en_US.
+        if len(tmp) == 0:
+            tmp = ['en-us', 'en', 'en_US', 'en_us', 'en-US']
+
         self.locale_variants = [locale_to_bcp47(v) for v in tmp]
 
         debug("Appstream languages: %s" % str(self.locale_variants))
