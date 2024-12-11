@@ -1,3 +1,10 @@
+mint-common (2.4.3) xia; urgency=medium
+
+  [ Michael Webster ]
+  * appstream_pool.py: Use en_US when loading appstream, if no other locale is set.
+
+ -- Clement Lefebvre <root@linuxmint.com>  Wed, 11 Dec 2024 16:27:38 +0000
+
 mint-common (2.4.2) xia; urgency=medium
 
   [ Michael Webster ]
