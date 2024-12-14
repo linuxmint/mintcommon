@@ -431,7 +431,7 @@ class Pool():
             try:
                 if kind == KIND_APP:
                     base_node = self.xmlb_silo.query_first(
-                        f"components/component/id[starts-with(text(),'{pkginfo.name}')]/.."
+                        f"components/component/id[text()='{pkginfo.name}']/.."
                     )
                 else:
                     base_nodes = self.xmlb_silo.query(
