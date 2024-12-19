@@ -1,3 +1,10 @@
+mint-common (2.4.4) xia; urgency=medium
+
+  [ Michael Webster ]
+  * Appstream: Use exact name match for application lookups.
+
+ -- Clement Lefebvre <root@linuxmint.com>  Thu, 19 Dec 2024 16:19:57 +0000
+
 mint-common (2.4.3) xia; urgency=medium
 
   [ Michael Webster ]
