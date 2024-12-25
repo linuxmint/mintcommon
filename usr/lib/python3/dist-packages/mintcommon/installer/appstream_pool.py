@@ -430,9 +430,14 @@ class Pool():
 
             try:
                 if kind == KIND_APP:
-                    base_node = self.xmlb_silo.query_first(
-                        f"components/component/id[text()='{pkginfo.name}']/.."
-                    )
+                    try:
+                        base_node = self.xmlb_silo.query_first(
+                            f"components/component/id[text()='{pkginfo.name}']/.."
+                        )
+                    except GLib.Error as e:
+                        base_node = self.xmlb_silo.query_first(
+                            f"components/component/id[text()='{pkginfo.name}.desktop']/.."
+                        )
                 else:
                     base_nodes = self.xmlb_silo.query(
                         f"components/component/id[starts-with(text(),'{pkginfo.name}')]/..",
