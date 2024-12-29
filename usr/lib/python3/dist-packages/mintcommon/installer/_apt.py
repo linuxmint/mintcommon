@@ -98,6 +98,11 @@ def process_full_apt_cache(cache):
             continue
         if pkg.candidate is None:
             continue
+        # kernel, universe/kernel, multiverse/kernel, restricted/kernel
+        if pkg.candidate.section.endswith("kernel"):
+            continue
+        if name.startswith(("linux-headers-", "linux-tools-")):
+            continue
         if ":" in name and name.split(":")[0] in keys:
             continue
         try:
