@@ -1,3 +1,11 @@
+mint-common (2.4.5) xia; urgency=medium
+
+  [ Michael Webster ]
+  * appstream: Check for .desktop suffixed ids also.
+  * _apt.py: Filter out kernel-related packages.
+
+ -- Clement Lefebvre <root@linuxmint.com>  Sun, 05 Jan 2025 11:13:26 +0000
+
 mint-common (2.4.4) xia; urgency=medium
 
   [ Michael Webster ]
