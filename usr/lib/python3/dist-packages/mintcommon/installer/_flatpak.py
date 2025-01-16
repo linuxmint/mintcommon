@@ -1026,7 +1026,7 @@ def _pkginfo_from_file_thread(cache, file, callback):
                 except GLib.Error as e:
                     if e.code == GLib.KeyFileError.KEY_NOT_FOUND:
                         warn("Installer: flatpak - flatpakref file doesn't have a Branch key, maybe nightly or testing.")
-                        branch = None
+                        branch = "master"
 
                 remote_name = _get_remote_name_by_url(fp_sys, url)
 
