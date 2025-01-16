@@ -1064,7 +1064,7 @@ def _pkginfo_from_file_thread(cache, file, callback):
                 try:
                     rpool = pools[remote.get_name()]
                 except KeyError:
-                    rpool = Pool(remote)
+                    rpool = appstream_pool.Pool(remote)
                     _process_remote(cache, rpool, fp_sys, remote, Flatpak.get_default_arch())
 
                 # Add the ref to the cache, so we can work with it like any other in mintinstall
