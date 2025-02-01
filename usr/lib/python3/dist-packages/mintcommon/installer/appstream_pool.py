@@ -109,7 +109,7 @@ class Screenshot():
                 closest = img
                 closest_diff = w_diff
 
-        return closest
+        return closest or self.source_image
 
     def get_source_image(self):
         return self.source_image
@@ -464,6 +464,9 @@ class Pool():
     @print_timing
     def _load_xmlb_silo(self):
         xml_file = self.appstream_dir.get_child("appstream.xml")
+        if not xml_file.query_exists(None):
+            xml_file = self.appstream_dir.get_child("appstream.xml.gz")
+
         source = Xmlb.BuilderSource()
         try:
             ret = source.load_file(xml_file, Xmlb.BuilderSourceFlags.NONE, None)
