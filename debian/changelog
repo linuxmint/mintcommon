@@ -1,3 +1,12 @@
+mint-common (2.4.6) xia; urgency=medium
+
+  [ Michael Webster ]
+  * _flatpak.py: Fix error when loading a flatpakref file.
+  * _flatpak.py: Don't try to pass a NULL branch to construct a FlatpakRemoteRef.
+  * appstream_pool.py: Check for compressed xml, and return source screenshots if no thumbnails are available.
+
+ -- Clement Lefebvre <root@linuxmint.com>  Fri, 07 Feb 2025 18:45:21 +0000
+
 mint-common (2.4.5) xia; urgency=medium
 
   [ Michael Webster ]
