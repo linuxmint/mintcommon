@@ -1,3 +1,17 @@
+mint-common (2.4.7) gigi; urgency=medium
+
+  [ DetachHead ]
+  * don't filter out librewolf (#67)
+
+  [ Clement Lefebvre ]
+  * mint-remove-applications: Switch to aptkit
+
+  [ Michael Webster ]
+  * installer: Use aptkit's gtk3 widgets.
+  * Remove aptdaemon.py.
+
+ -- Clement Lefebvre <root@linuxmint.com>  Fri, 05 Sep 2025 15:37:17 +0100
+
 mint-common (2.4.6) xia; urgency=medium
 
   [ Michael Webster ]
