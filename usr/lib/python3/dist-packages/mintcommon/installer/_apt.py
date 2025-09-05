@@ -10,7 +10,7 @@ gi.require_version("PackageKitGlib", "1.0")
 from gi.repository import Gtk, GLib
 from gi.repository import PackageKitGlib as packagekit
 
-from aptdaemon.gtk3widgets import AptProgressDialog
+from aptkit.gtk3widgets import AptProgressDialog
 
 from .pkgInfo import AptPkgInfo
 from .dialogs import ChangesConfirmDialog

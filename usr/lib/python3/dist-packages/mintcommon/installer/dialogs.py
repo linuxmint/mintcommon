@@ -8,7 +8,7 @@ LOCALE_DIR = "/usr/share/linuxmint/locale"
 t = gettext.translation(APP, LOCALE_DIR, fallback=True)
 _ = t.gettext
 
-from aptdaemon.gtk3widgets import AptConfirmDialog
+from aptkit.gtk3widgets import AptConfirmDialog
 
 ######################### Subclass Apt's dialog to keep consistency
 
