@@ -86,8 +86,8 @@ class AptPkgInfo(PkgInfo):
             self.name = apt_pkg.name
             self.display_name = self.get_display_name(apt_pkg)
             self.summary = self.get_summary(apt_pkg)
-            self.get_icon(apt_pkg, 48)
-            self.get_icon(apt_pkg, 64)
+            self.get_icon(48, apt_pkg)
+            self.get_icon(64, apt_pkg)
 
     @classmethod
     def from_json(cls, json_data:dict):
@@ -179,7 +179,7 @@ class AptPkgInfo(PkgInfo):
     def get_keywords(self):
         return ""
 
-    def get_icon(self, apt_pkg=None, size=64):
+    def get_icon(self, size=64, apt_pkg=None):
         try:
             return self.icon[size]
         except:
