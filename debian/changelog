@@ -1,3 +1,10 @@
+mint-common (2.4.9) zena; urgency=medium
+
+  [ Michael Webster ]
+  * Add a polkit rule to allow background metadata/appstream updates for inactive users.
+
+ -- Clement Lefebvre <root@linuxmint.com>  Thu, 11 Dec 2025 14:36:04 +0000
+
 mint-common (2.4.8) gigi; urgency=medium
 
   [ Michael Webster ]
