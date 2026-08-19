@@ -1,3 +1,15 @@
+mint-common (2.5.2) alfa; urgency=medium
+
+  [ Michael Webster ]
+  * appstream_pool.py: Don't try to process disabled remotes.
+  * _flatpak.py: Don't look for themes on disabled remotes.
+  * installer: Fix description lookup for search operations, cache raw descriptions during runtime.
+  * pkgInfo.py: Fix copy/paste errors.
+  * _flatpak.py: Remove overkill runtime check for flatpak addons.
+  * flatpak addons: Discover shared addons also (like LinuxAudio).
+
+ -- Clement Lefebvre <root@linuxmint.com>  Wed, 19 Aug 2026 15:01:26 +0200
+
 mint-common (2.5.1) zena; urgency=medium
 
   [ Michael Webster ]
