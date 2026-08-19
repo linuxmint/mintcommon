@@ -205,6 +205,7 @@ class MetaTransaction(packagekit.Task):
     def on_transaction_error(self, error):
         # PkErrorEnums are sent from the backend mainly
         # PkClientErrors are related to interaction with a task/client - accept/deny, etc...
+        apt_cache = get_apt_cache()
         if error.code == packagekit.ClientError.DECLINED_SIMULATION:
             # canceled via additional-changes dialog
             return
@@ -223,7 +224,7 @@ class MetaTransaction(packagekit.Task):
             # user navigated away before simulation was complete, etc...
             return
 
-        if real_code == packagekit.ErrorEnum.CANNOT_REMOVE_SYSTEM_PACKAGE or self.task.pkginfo.name in CRITICAL_PACKAGES:
+        if real_code == packagekit.ErrorEnum.CANNOT_REMOVE_SYSTEM_PACKAGE or self._is_critical_package(apt_cache[self.task.pkginfo.name]):
             self.task.info_ready_status = self.task.STATUS_FORBIDDEN
 
         if self.task.info_ready_status == self.task.STATUS_NONE:
