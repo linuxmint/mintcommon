@@ -2,6 +2,8 @@
 
 import os
 import gettext
+import re
+from xml.sax.saxutils import escape, unescape
 
 def strip_split_and_recombine(comma_separated):
     word_list = comma_separated.split(",")
@@ -76,6 +78,22 @@ def generate(domain, path, filename, prefix, name, comment, suffix, genericName=
     desktopFile.writelines(suffix)
     desktopFile.close()
 
+# Writes an xml element containing text, followed by one localized element
+# for every locale that translates it.
+def write_translated_element(xmlFile, domain, path, tag, text, indent=""):
+    xmlFile.writelines("%s<%s>%s</%s>\n" % (indent, tag, escape(text), tag))
+
+    for directory in sorted(os.listdir(path)):
+        mo_file = os.path.join(path, directory, "LC_MESSAGES", "%s.mo" % domain)
+        if os.path.exists(mo_file):
+            try:
+                language = gettext.translation(domain, path, languages=[directory])
+                L_ = language.gettext
+                if (L_(text) != text):
+                    xmlFile.writelines("%s<%s xml:lang=\"%s\">%s</%s>\n" % (indent, tag, directory, escape(L_(text)), tag))
+            except:
+                pass
+
 def generate_polkit_policy(domain, path, filename, prefix, message, suffix, append=False):
     if append:
         policyFile = open(filename, "a")
@@ -84,17 +102,26 @@ def generate_polkit_policy(domain, path, filename, prefix, message, suffix, appe
 
     policyFile.writelines(prefix)
 
-    policyFile.writelines("<message>%s</message>\n" % message)
-    for directory in sorted(os.listdir(path)):
-        mo_file = os.path.join(path, directory, "LC_MESSAGES", "%s.mo" % domain)
-        if os.path.exists(mo_file):
-            try:
-                language = gettext.translation(domain, path, languages=[directory])
-                L_ = language.gettext
-                if (L_(message) != message):
-                    policyFile.writelines("<message xml:lang=\"%s\">%s</message>\n" % (directory, L_(message)))
-            except:
-                pass
+    write_translated_element(policyFile, domain, path, "message", message)
 
     policyFile.writelines(suffix)
     policyFile.close()
+
+MIME_COMMENT = re.compile(r"^(\s*)<_comment>(.*)</_comment>\s*$")
+
+# Copies a shared-mime-info file, expanding each intltool-style <_comment>
+# into a plain <comment> plus a localized one per translation.
+def generate_mime_file(domain, path, infilename, outfilename):
+    inFile = open(infilename)
+    mimeFile = open(outfilename, "w")
+
+    for line in inFile:
+        match = MIME_COMMENT.match(line)
+        if match is None:
+            mimeFile.writelines(line)
+        else:
+            indent, comment = match.groups()
+            write_translated_element(mimeFile, domain, path, "comment", unescape(comment), indent)
+
+    mimeFile.close()
+    inFile.close()
