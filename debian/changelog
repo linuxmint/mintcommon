@@ -1,3 +1,10 @@
+mint-common (2.5.3) adrien; urgency=medium
+
+  [ Michael Webster ]
+  * additionalfiles.py: Add generate_mime_file().
+
+ -- Clement Lefebvre <root@linuxmint.com>  Tue, 13 Oct 2026 14:57:13 +0100
+
 mint-common (2.5.2) alfa; urgency=medium
 
   [ Michael Webster ]
