@@ -534,7 +534,7 @@ class FlatpakTransaction():
                             self.transaction.add_uninstall(addon_info.refid)
                         except GLib.Error as e:
                             if e.code != Flatpak.Error.NOT_INSTALLED:
-                                warn("Could not add uninstall for addon '%s': %s" % (addon_formatted_ref, e.message))
+                                warn("Could not add uninstall for addon '%s': %s" % (addon_info.refid, e.message))
                             continue
             else:
                 try:
