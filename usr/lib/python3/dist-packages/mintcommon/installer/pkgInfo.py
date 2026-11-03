@@ -181,17 +181,17 @@ class AptPkgInfo(PkgInfo):
         return ""
 
     def get_icon(self, size=64, apt_pkg=None):
-        try:
-            return self.icon[size]
-        except:
-            pass
-
+        # Checked live rather than cached, as self.icon is persisted and the theme can change.
         theme = Gtk.IconTheme.get_default()
 
         for name in [self.name, self.name.split(":")[0], self.name.split("-")[0], self.name.split(".")[-1].lower()]:
             if theme.has_icon(name):
-                self.icon[size] = name
-                return self.icon[size]
+                return name
+
+        try:
+            return self.icon[size]
+        except:
+            pass
 
         # Look in app-install-data and pixmaps
         for extension in ['svg', 'png', 'xpm']:
@@ -362,6 +362,10 @@ class FlatpakPkgInfo(PkgInfo):
         return self.keywords
 
     def get_icon(self, size=64, as_pkg=None):
+        # Checked live rather than cached, as self.icon is persisted and the theme can change.
+        if Gtk.IconTheme.get_default().has_icon(self.name):
+            return self.name
+
         try:
             return self.icon[str(size)]
         except KeyError:
