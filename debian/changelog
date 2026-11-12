@@ -1,3 +1,17 @@
+mint-common (2.5.4) adrien; urgency=medium
+
+  [ Michael Webster ]
+  * pkgInfo.py: Prefer theme icons for flatpaks, and don't persist them.
+  * _apt.py: Only check for critical packages on failed removals.
+
+  [ Abraham Binder ]
+  * Resolve to STATUS_FORBIDDEN when trying to remove required packages. (#72)
+
+  [ Pedro Barbosa ]
+  * _flatpak.py: Fix NameError when an addon can't be added for removal (#78)
+
+ -- Clement Lefebvre <root@linuxmint.com>  Thu, 12 Nov 2026 11:46:12 +0000
+
 mint-common (2.5.3) adrien; urgency=medium
 
   [ Michael Webster ]
