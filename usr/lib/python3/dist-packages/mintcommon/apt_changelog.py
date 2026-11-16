@@ -199,7 +199,7 @@ Proceed with the download?"
         elif origin == 'LP-PPA':
             ppa_url, ppa_owner, ppa_name, _ = \
                 self.candidate.uri.split("://")[1].split("/", 3)
-            base_uri = "https://ppa.launchpadcontent.net/%s/%s/ubuntu/pool/main/{self.source_prefix()}/%s" % (ppa_owner, ppa_name, self.candidate.source_name)
+            base_uri = "https://ppa.launchpadcontent.net/%s/%s/ubuntu/pool/main/%s/%s" % (ppa_owner, ppa_name, self.source_prefix(), self.candidate.source_name)
             r, uri = self.get_changelog_uri(base_uri)
             if not r:
                 # fall back to last change info only
