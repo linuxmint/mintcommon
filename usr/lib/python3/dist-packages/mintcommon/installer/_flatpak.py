@@ -104,7 +104,7 @@ def _get_remote_name_by_url(fp_sys, url):
 
     return name
 
-def _should_cache_ref(ref, arch):
+def _should_cache_ref(ref, arch, installed=False):
     if ref.get_kind() == Flatpak.RefKind.RUNTIME:
         return False
 
@@ -117,7 +117,7 @@ def _should_cache_ref(ref, arch):
     if ref.get_arch() != arch:
         return False
 
-    if ref.get_eol() is not None:
+    if not installed and ref.get_eol() is not None:
         return False
 
     return True
@@ -198,7 +198,7 @@ def process_full_flatpak_installation(cache):
                 for ref in fp_sys.list_installed_refs(None):
                     # All remotes will see installed refs, but the installed refs will always
                     # report their correct origin, so only add installed refs when they match the remote.
-                    if ref.get_origin() == remote_name and _should_cache_ref(ref, arch):
+                    if ref.get_origin() == remote_name and _should_cache_ref(ref, arch, installed=True):
                         _add_package_to_cache(cache, rpool, ref, remote.get_url(), True)
             except GLib.Error as e:
                 warn("adding packages:", e.message)
